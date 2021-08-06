@@ -1,5 +1,4 @@
-# ElectraZayavka
-Application for 
+# ElectraZayavka 
 This application based on microsoft acess vba.It was made for pass office 
 of the Russian Children Clinical Hospital where i'm working as medical information system specialist. 
 This application significantly simplified process of the the process of analyzing and agreeing to 
