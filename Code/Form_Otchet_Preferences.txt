@@ -1,0 +1,304 @@
+Option Compare Database
+Private Sub ChooseNast_AfterUpdate()
+  If IsNull(ChooseNast.Value) Then
+        ChooseNast.Value = ChooseNast.ItemData(0)
+  End If
+  Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    SQL = "SELECT * FROM SystemFieldsPrefRev" & ChooseNast.ListIndex
+    Set rs = db.OpenRecordset(SQL)
+    rs.MoveFirst
+    Dim Flagi(31) As Boolean
+    Dim Nazvaniya(31) As String
+    Dim Dlina(31) As Integer
+    For i = 0 To 30
+        Flagi(i) = rs.Fields(2)
+        Dlina(i) = rs.Fields(3)
+        Nazvaniya(i) = rs.Fields(4)
+        rs.MoveNext
+    Next i
+    For Each cntrl In Me.Controls
+    If TypeOf cntrl Is TextBox Then
+        If cntrl.BorderColor = vbBlack Then
+            cntrl.Value = Nazvaniya(Int(cntrl.Tag) - 1)
+        ElseIf cntrl.BorderColor <> RGB(237, 28, 36) Then
+            cntrl.Value = Dlina(Int(cntrl.Tag) - 1)
+        End If
+    ElseIf TypeOf cntrl Is CheckBox Then
+            cntrl.Value = Flagi(Int(cntrl.Tag) - 1)
+    End If
+Next cntrl
+    Call ReadWriteDebug("Форма:Otchet_Preferences***Процедура:ChooseNast_AfterUpdate***Знач:")
+End Sub
+Private Sub ConfirmChanges_Click()
+    Dim SQL As String
+    Dim SQLMain As String
+    SQLMain = "UPDATE SystemFieldsPrefRev" & ChooseNast.ListIndex & " SET"
+    For Each cntrl In Me.Controls
+    If TypeOf cntrl Is TextBox Then
+        If cntrl.BorderColor = vbBlack Then
+            SQL = SQLMain & "[Имя в Excel] = " & "'" & cntrl.Value & "' " & "WHERE Код = " & cntrl.Tag
+        ElseIf cntrl.BorderColor <> RGB(237, 28, 36) Then
+            SQL = SQLMain & "[длинна поля] = " & "'" & cntrl.Value & "' " & "WHERE Код = " & cntrl.Tag
+        End If
+        CurrentDb.Execute SQL
+    ElseIf TypeOf cntrl Is CheckBox Then
+            SQL = SQLMain & "[Статус показа] = " & "'" & Int(cntrl.Value) * (-1) & "' " & "WHERE Код = " & cntrl.Tag
+            CurrentDb.Execute SQL
+    End If
+Next cntrl
+i = MsgBox("Данные успешно изменены!", vbInformation)
+Call ReadWriteDebug("Форма:Otchet_Preferences***Процедура:ConfirmChanges_Click***Знач:")
+End Sub
+Private Sub ConfPrefB_Click()
+    SQL = "UPDATE PrefNames SET [Pref0] = '" & P0.Value & "', [Pref1] = '" & P1.Value & "', [Pref2] = '" & P2.Value & "', [Pref3] = '" & P3.Value & "', [Pref4] = '" & P4.Value & "';"
+    CurrentDb.Execute SQL
+    ChooseNast.RowSource = P0.Value & ";" & P1.Value & ";" & P2.Value & ";" & P3.Value & ";" & P4.Value
+    'On Error Resume Next:
+    Forms![Interface_Soglosovaniya].Controls![ChooseNast].RowSource = P0.Value & ";" & P1.Value & ";" & P2.Value & ";" & P3.Value & ";" & P4.Value
+    Forms![Interface_Soglosovaniya].Controls![ChooseNast].Value = P0.Value
+    Forms![Interface_Soglosovaniya].Controls![ChooseNast].Selected(0) = True
+    Call ReadWriteDebug("Форма:Otchet_Preferences***Процедура:ConfPrefB_Click***Знач:")
+End Sub
+Private Sub Exit_To_Konstrukt_Click()
+    DoCmd.Close acForm, "Otchet_Preferences"
+    DoCmd.OpenForm "Interface_Soglosovaniya"
+End Sub
+Private Sub Form_Load()
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    SQL = "SELECT * FROM SystemFieldsPrefRev0"
+    Set rs = db.OpenRecordset(SQL)
+    rs.MoveFirst
+    Dim Flagi(31) As Boolean
+    Dim Nazvaniya(31) As String
+    Dim Dlina(31) As Integer
+    For i = 0 To 30
+        Flagi(i) = rs.Fields(2)
+        Dlina(i) = rs.Fields(3)
+        Nazvaniya(i) = rs.Fields(4)
+        rs.MoveNext
+    Next i
+    For Each cntrl In Me.Controls
+    If TypeOf cntrl Is TextBox Then
+        If cntrl.BorderColor = vbBlack Then
+            cntrl.Value = Nazvaniya(Int(cntrl.Tag) - 1)
+        ElseIf cntrl.BorderColor <> RGB(237, 28, 36) Then
+            cntrl.Value = Dlina(Int(cntrl.Tag) - 1)
+        End If
+    ElseIf TypeOf cntrl Is CheckBox Then
+            cntrl.Value = Flagi(Int(cntrl.Tag) - 1)
+    End If
+Next cntrl
+    SQL = "SELECT * FROM PrefNames"
+    Set rs = db.OpenRecordset(SQL)
+    P0.Value = rs.Fields(1)
+    P1.Value = rs.Fields(2)
+    P2.Value = rs.Fields(3)
+    P3.Value = rs.Fields(4)
+    P4.Value = rs.Fields(5)
+    ChooseNast.RowSource = P0.Value & ";" & P1.Value & ";" & P2.Value & ";" & P3.Value & ";" & P4.Value
+    ChooseNast.Value = rs.Fields(1)
+    Call ReadWriteDebug("Форма:Otchet_Preferences***Процедура:Form_Load***Знач:")
+End Sub
+Private Sub FField_AfterUpdate()
+    Call Validator2(FField)
+End Sub
+Private Sub NField_AfterUpdate()
+    Call Validator2(NField)
+End Sub
+Private Sub OField_AfterUpdate()
+    Call Validator2(OField)
+End Sub
+Private Sub CompField_AfterUpdate()
+    Call Validator2(CompField)
+End Sub
+Private Sub ContactField_AfterUpdate()
+    Call Validator2(ContactField)
+End Sub
+Private Sub Date1Field_AfterUpdate()
+    Call Validator2(Date1Field)
+End Sub
+Private Sub ReasonEntField_AfterUpdate()
+    Call Validator2(ReasonEntField)
+End Sub
+Private Sub FIOPField_AfterUpdate()
+    Call Validator2(FIOPField)
+End Sub
+Private Sub SoprovodField_AfterUpdate()
+    Call Validator2(SoprovodField)
+End Sub
+Private Sub SiNField_AfterUpdate()
+    Call Validator2(SiNField)
+End Sub
+Private Sub AutoField_AfterUpdate()
+    Call Validator2(AutoField)
+End Sub
+Private Sub NumAutoField_AfterUpdate()
+    Call Validator2(NumAutoField)
+End Sub
+Private Sub CommentField_AfterUpdate()
+    Call Validator2(CommentField)
+End Sub
+Private Sub OtdField_AfterUpdate()
+    Call Validator2(OtdField)
+End Sub
+Private Sub PeriodField_AfterUpdate()
+    Call Validator2(PeriodField)
+End Sub
+Private Sub EndDateField_AfterUpdate()
+    Call Validator2(EndDateField)
+End Sub
+Private Sub TypeZField_AfterUpdate()
+    Call Validator2(TypeZField)
+End Sub
+Private Sub VydZField_AfterUpdate()
+    Call Validator2(VydZField)
+End Sub
+Private Sub StateSog_AfterUpdate()
+    Call Validator2(StateSog)
+End Sub
+Private Sub DateZapolField_AfterUpdate()
+    Call Validator2(DateZapolField)
+End Sub
+Private Sub RefuseReasonField_AfterUpdate()
+    Call Validator2(RefuseReasonField)
+End Sub
+Private Sub ZayavkStateField_AfterUpdate()
+    Call Validator2(ZayavkStateField)
+End Sub
+Private Sub NumerZavField_AfterUpdate()
+    Call Validator2(NumerZavField)
+End Sub
+Private Sub GruzField_AfterUpdate()
+    Call Validator2(GruzField)
+End Sub
+Private Sub SpisokZavField_AfterUpdate()
+    Call Validator2(SpisokZavField)
+End Sub
+Private Sub StateKadField_AfterUpdate()
+    Call Validator2(StateKadField)
+End Sub
+Private Sub ContactPField_AfterUpdate()
+    Call Validator2(ContactPField)
+End Sub
+Private Sub ByroField_AfterUpdate()
+    Call Validator2(ByroField)
+End Sub
+Private Sub NameFField_AfterUpdate()
+    Call Validator(NameFField)
+End Sub
+Private Sub NameLField_AfterUpdate()
+    Call Validator(NameLField)
+End Sub
+Private Sub NameOField_AfterUpdate()
+    Call Validator(NameOField)
+End Sub
+Private Sub NameCompField_AfterUpdate()
+    Call Validator(NameCompField)
+End Sub
+Private Sub NameContField_AfterUpdate()
+    Call Validator(NameContField)
+End Sub
+Private Sub NameDate1Field_AfterUpdate()
+    Call Validator(NameDate1Field)
+End Sub
+Private Sub NameREField_AfterUpdate()
+    Call Validator(NameREField)
+End Sub
+Private Sub NameFIOPField_AfterUpdate()
+    Call Validator(NameFIOPField)
+End Sub
+Private Sub NameSoprovField_AfterUpdate()
+    Call Validator(NameSoprovField)
+End Sub
+Private Sub NameSiNField_AfterUpdate()
+    Call Validator(NameSiNField)
+End Sub
+Private Sub NameAutoField_AfterUpdate()
+    Call Validator(NameAutoField)
+End Sub
+Private Sub NameNomAutoField_AfterUpdate()
+    Call Validator(NameNomAutoField)
+End Sub
+Private Sub NameCommField_AfterUpdate()
+    Call Validator(NameCommField)
+End Sub
+Private Sub NameOtdField_AfterUpdate()
+    Call Validator(NameOtdField)
+End Sub
+Private Sub NamePreiodField_AfterUpdate()
+    Call Validator(NamePreiodField)
+End Sub
+Private Sub NameDate2Field_AfterUpdate()
+    Call Validator(NameDate2Field)
+End Sub
+Private Sub NameTypeField_AfterUpdate()
+    Call Validator(NameTypeField)
+End Sub
+Private Sub NameVydField_AfterUpdate()
+    Call Validator(NameVydField)
+End Sub
+Private Sub NameStateField_AfterUpdate()
+    Call Validator(NameStateField)
+End Sub
+Private Sub NameDateZapField_AfterUpdate()
+    Call Validator(NameDateZapField)
+End Sub
+Private Sub NameRRField_AfterUpdate()
+    Call Validator(NameRRField)
+End Sub
+Private Sub NameZSField_AfterUpdate()
+    Call Validator(NameZSField)
+End Sub
+Private Sub NameNumZavField_AfterUpdate()
+    Call Validator(NameNumZavField)
+End Sub
+Private Sub NameGruzField_AfterUpdate()
+    Call Validator(NameGruzField)
+End Sub
+Private Sub NameSZField_AfterUpdate()
+    Call Validator(NameSZField)
+End Sub
+Private Sub NameSKField_AfterUpdate()
+    Call Validator(NameSKField)
+End Sub
+Private Sub NameContPField_AfterUpdate()
+    Call Validator(NameContPField)
+End Sub
+Private Sub NameByroField_AfterUpdate()
+    Call Validator(NameByroField)
+End Sub
+Private Sub P0_AfterUpdate()
+    Call Validator(P0)
+End Sub
+Private Sub P1_AfterUpdate()
+    Call Validator(P1)
+End Sub
+Private Sub P2_AfterUpdate()
+    Call Validator(P2)
+End Sub
+Private Sub P3_AfterUpdate()
+    Call Validator(P3)
+End Sub
+Private Sub P4_AfterUpdate()
+    Call Validator(P4)
+End Sub
+Private Sub NameAnulateDate_AfterUpdate()
+    Call Validator2(NField)
+End Sub
+Private Sub Validator(ObjT As Object)
+    ObjT.Value = Replace(ObjT.Value, "'", "")
+    ObjT.Value = Replace(ObjT.Value, Chr(34), "")
+    Call ReadWriteDebug("Форма:Otchet_Preferences***Процедура:Validator***Знач: " & ObjT.Value)
+End Sub
+Private Sub Validator2(ObjT As Object)
+    If ObjT.Value = "" Or ObjT.Value = "0" Or IsNull(ObjT) Then
+        ObjT.Value = 1
+    End If
+    Call ReadWriteDebug("Форма:Otchet_Preferences***Процедура:Validator2***Знач: " & ObjT.Value)
+End Sub
+
+

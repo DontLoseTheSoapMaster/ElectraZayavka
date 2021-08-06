@@ -1,0 +1,1218 @@
+Option Compare Database
+Private Sub AutoFill_Click()
+    Dim SQL As String
+    If FirstName.BackColor <> RGB(240, 101, 130) And LastName.BackColor <> RGB(240, 101, 130) And Otchestvo.BackColor <> RGB(240, 101, 130) Then
+        On Error GoTo errHandler:
+        Contact.SetFocus
+        SQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users SET First_Name = " & "'" & FirstName.Value & "'," & " Last_Name = " & "'" & LastName.Value & "', Othcestvo = " & "'" & Otchestvo.Value & "', Contact = " & "'" & Contact.Value & "' WHERE  Username = " & Chr(39) & UserLabel.Caption & Chr(39) & ";"
+        CurrentDb.Execute SQL
+        i = MsgBox("Параметры Автозаполнения успешно изменены", vbInformation)
+    Else
+        i = MsgBox("В одном или в нескольких полях введены запрещенные символы (поля выделены красным). Введите информацию корректно!", vbCritical)
+    End If
+    Call ReadWriteDebug("Форма:Preferences***Процедура:AutoFill_Click***Знач:")
+Exit Sub
+errHandler:
+    Call ReadWriteLog(Err.Description, "AutoFill(Preferences)")
+    MsgBox Err.Description
+End Sub
+Private Sub AutoVhod_Cancel_Click()
+    Dim db1 As Database
+    Dim SQL As String
+    Dim rs1 As DAO.Recordset
+    Dim db2 As Database
+    Dim A As String
+    On Error GoTo ErHandler:
+    A = Environ$("computername")
+    SQL = "DELETE * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Computer_In_Our_System WHERE Computer = " & "'" & A & "';"
+    CurrentDb.Execute SQL
+    i = MsgBox("Автоматический вход отменен", vbInformation)
+    Call ReadWriteDebug("Форма:Preferences***Процедура:AutoVhod_Cancel_Click***Знач:")
+    Exit Sub
+ErHandler:
+    Call ReadWriteLog(Err.Description, "AutoVhod_Cancel_Click(Preferences)")
+    i = MsgBox("Ошибка удаления. Возможно Автоматический вход не был задан", vbCritical)
+End Sub
+Private Sub ChangeEmailButton_Click()
+    Dim SQL As String
+    Dim IniFileName2 As String
+    Dim fs As Object
+    On Error GoTo ErHandler:
+    If EMail_Field.Value <> "" And EmailPass.Value <> "" And (EmailPass2.Value = EmailPass.Value) Then
+        g = MsgBox("Вы уверены, что хотите поменять E-mail и пароль для рассылки?", vbYesNo, "Внимание!")
+        If g = 6 Then
+            'Dim db As Database
+            'Dim rs As DAO.Recordset
+            'Dim Otdelenie As String
+            'Set db = DBEngine.Workspaces(0).Databases(0)
+            'SQL = "SELECT * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users, [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya WHERE  Users.Username = " & Chr(39) & UserLabel.Caption & Chr(39) & " " & "AND Users.TheKey = Otdeleniya.TheKey"
+            'Set rs = db.OpenRecordset(SQL)
+            'Otdelenie = rs.Fields(12)
+            'Set fs = CreateObject("Scripting.FileSystemObject")
+            'Set a = fs.CreateTextFile(Environ("HOMEDRIVE") & Environ("HOMEPATH") & "\SendMail\Message.txt", True)
+            'a.WriteLine ("From: " & EMail_Field.Value & vbNewLine & "To: " & "propusk@rdkb.ru" & vbNewLine & "Subject: " & Otdelenie & " Новая заявка!")
+            'a.Close
+            IniFileName2 = Environ("HOMEDRIVE") & Environ("HOMEPATH") & "\SendMail\sendmail.ini"
+            If Len(Dir$(IniFileName2)) <= 0 Then
+                Call Form_MainDatabase.CopySendMailFolder
+            End If
+            If Len(Dir$(IniFileName2)) > 0 Then
+                SQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users SET RDKBEMail = " & "'" & EMail_Field.Value & "@rdkb.ru" & "', " & "EMailPassword = " & "'" & EmailPass.Value & "', " & "EmailState = " & "'" & 1 & "' " & "WHERE  Username = " & Chr(39) & UserLabel.Caption & Chr(39) & ";"
+                CurrentDb.Execute SQL
+                Call IniFileName(IniFileName2, EMail_Field.Value, EmailPass.Value)
+                i = MsgBox("Данные успешно изменены", vbInformation)
+            Else
+                i = MsgBox("Файл SendMail.ini не найден. Проверьте, установлен ли SendMail На компьютере.", vbCritical)
+            End If
+        End If
+    Else
+        i = MsgBox("Есть пустые поля, либо поля пароль и подтвердите пароль не совпадают", vbInformation)
+    End If
+    Call ReadWriteDebug("Форма:Preferences***Процедура:ChangeEmailButton_Click***Знач:")
+    Exit Sub
+ErHandler:
+    MsgBox Err.Description
+    Call ReadWriteLog(Err.Description, "ChangeEmailButton(Preferences)")
+    i = MsgBox("Эмейл рассылка прекращена. Как только вы введете данные и ошибки не возникнет - она снова будет работать")
+    Call CancelEmail
+End Sub
+Private Sub CancelEmail()
+    On Error Resume Next:
+    SQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users SET EmailState = " & "'" & 0 & "' " & " WHERE  Username = " & Chr(39) & UserLabel.Caption & Chr(39) & ";"
+    CurrentDb.Execute SQL
+    Call ReadWriteDebug("Форма:Preferences***Процедура:CancelEmail***Знач:")
+End Sub
+Private Sub ChangeZapis_Click()
+    Dim NePusto(5) As Object
+    Set NePusto(0) = FullNameOtd
+    Set NePusto(1) = ShortNameOtd
+    Dim ProverkaZapolneniya As Boolean
+    Dim Zaratustra As Boolean
+    Zaratustra = True
+    ProverkaZapolneniya = False
+    Dim MsgText As String
+    Dim MinZapol As Integer
+    If OtdDolzhnst.ListIndex = 0 Then MinZapol = 1 Else MinZapol = 0
+    For i = 0 To MinZapol
+        If IsNull(NePusto(i).Value) Or NePusto(i).Value = "" Then
+            ProverkaZapolneniya = True
+            MsgText = MsgText & NePusto(i).Tag & ","
+        End If
+    Next i
+    If ProverkaZapolneniya = True Then
+        i = MsgBox("Следующие поля не должны быть пустыми: " & Left(MsgText, Len(MsgText) - 1), vbCritical)
+    Else
+        Dim SQL As String
+        Dim db As Database
+        Dim rs As DAO.Recordset
+        Set db = DBEngine.Workspaces(0).Databases(0)
+        If MinZapol = 1 Then
+            SQL = "SELECT * From [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya Where otd = '" & FullNameOtd.Value & "'"
+        Else
+            SQL = "SELECT * From Dolzhnosti Where NameOfDolzhnost = '" & FullNameOtd.Value & "'"
+        End If
+        Set rs = db.OpenRecordset(SQL)
+        If AddState.Value = False Then
+            If NePusto(0).Value <> PolNazv.Caption And CheckEdit.Value = True Then
+                Zaratustra = CheckMozhnoLI
+            End If
+            If Zaratustra = True Then
+                If MinZapol = 1 Then
+                    Call IzmenenieProcess
+                Else
+                    Call IzmenenieProcess_2
+                End If
+            Else
+                i = MsgBox("Ничего не изменено")
+            End If
+            If CheckEdit.Value = True Then
+                SQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya SET AllowOpen = True WHERE otd = '" & FullNameOtd.Value & "'"
+                CurrentDb.Execute SQL
+            End If
+            Call ReadWriteDebug("Форма:Preferences***Процедура:ChangeZapis_Click***Знач: Внесены изменения в запись. Новое значение: " & FullNameOtd.Value)
+        Else
+            On Error GoTo Putana:
+            rs.MoveFirst
+            i = MsgBox("Отделение/Должность с указанными именем уже существует!", vbCritical)
+            Exit Sub
+Putana:
+            If MinZapol = 1 Then
+                Call AddProcess
+            Else
+                Call AddProcess_2
+            End If
+            Call ReadWriteDebug("Форма:Preferences***Процедура:ChangeZapis_Click***Знач: Добавлено: " & FullNameOtd.Value)
+        End If
+    End If
+End Sub
+Private Function CheckMozhnoLI() As Boolean
+    Dim SQL As String
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    SQL = "SELECT * FROM OtdeleniyasOnline WHERE OTDELENIE = '" & PolNazv.Caption & "'"
+    Set rs = db.OpenRecordset(SQL)
+    If rs.RecordCount > 0 Then
+        If PolNazv.BorderColor = vbBlack Then
+            g = MsgBox("На данный момент есть активные пользователи отделения - " & Chr(34) & PolNazv.Caption & Chr(34) & "! Пока они активны - изменять название их отделения или удалять это отделения из общего списка нельзя. Кикнуть их нахрен из системы (на это уйдет до 4 минут)?", vbYesNo)
+            If g = 7 Then
+                CheckMozhnoLI = False
+                Exit Function
+            Else
+                PolNazv.BorderColor = vbGreen
+                SQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya SET AllowOpen = False WHERE otd = '" & PolNazv.Caption & "'"
+                CurrentDb.Execute SQL
+            End If
+        Else
+            i = MsgBox("Осталось еще - " & rs.Fields(1) & " Активных(-ый) пользователей(-ель). Подождите еще немного", vbCritical)
+        End If
+        CheckMozhnoLI = False
+    Else
+        CheckMozhnoLI = True
+    End If
+End Function
+Private Sub AddProcess()
+    On Error GoTo SmotrimOschibku:
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Dim SQL As String
+    Dim Kodosh As Integer
+    Dim TelephoneStr As String
+    If TelephoneOtd.Value <> "" And Len(TelephoneOtd.Value) = 10 Then
+        TelephoneStr = "8-(" & Left(TelephoneOtd.Value, 3) & ")-" & Mid(TelephoneOtd.Value, 4, 3) & "-" & Mid(TelephoneOtd.Value, 7, 2) & "-" & Mid(TelephoneOtd.Value, 9)
+    ElseIf TelephoneOtd.Value <> "" Then
+        TelephoneStr = TelephoneOtd.Value
+    Else
+        TelephoneStr = ""
+    End If
+    SQL = "SELECT TOP 1 * FROM [;DATABASE=" & (CurrentProject.Path & "\Archive\ArchiveZayavok.accdb") & ";PWD=dddd;].Otdeleniya"
+    Set rs = db.OpenRecordset(SQL)
+    Kodosh = 1
+    SQL = "INSERT INTO [;DATABASE=" & (CurrentProject.Path & "\Archive\ArchiveZayavok.accdb") & ";PWD=dddd;].Otdeleniya ([otd],[Corpus],[floor],[Color],[Telephone],[ShortName]) VALUES " & "('" & FullNameOtd.Value & "' " & ",'" & CorpusOtd.Value & "' " & ",'" & EtazhOtd.Value & "' " & ",'" & (TypeOfOtdeleniya_2.ListIndex + 1) & "' " & ",'" & TelephoneStr & "' " & ",'" & ShortNameOtd.Value & "');"
+    CurrentDb.Execute SQL
+    SQL = "INSERT INTO [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya ([otd],[Corpus],[floor],[Color],[Telephone],[ShortName],[AllowOpen]) VALUES " & "('" & FullNameOtd.Value & "' " & ",'" & CorpusOtd.Value & "' " & ",'" & EtazhOtd.Value & "' " & ",'" & (TypeOfOtdeleniya_2.ListIndex + 1) & "' " & ",'" & TelephoneStr & "' " & ",'" & ShortNameOtd.Value & "' " & "," & True & ");"
+    CurrentDb.Execute SQL
+    i = MsgBox("Запись успешно Добавлена", vbInformation)
+    Call LoadInSheet
+    RedactState.Enabled = True
+    RedactState.Value = False
+    Call ReadWriteDebug("Форма:Preferences***Процедура:AddProcess***Знач:")
+    Exit Sub
+SmotrimOschibku:
+    i = MsgBox(Err.Description)
+    If Kodosh = 0 Then
+        i = MsgBox("Архивная база данных открыта! Закройте ее и повторите попытку еще раз", vbCritical)
+    End If
+End Sub
+Private Sub AddProcess_2()
+    Dim SQL As String
+    SQL = "INSERT INTO Dolzhnosti ([NameOfDolzhnost]) VALUES " & "('" & FullNameOtd.Value & "');"
+    CurrentDb.Execute SQL
+    i = MsgBox("Запись успешно Добавлена", vbInformation)
+    Call ReadWriteDebug("Форма:Preferences***Процедура:AddProcess_2***Знач:")
+    Call LoadInSheet
+End Sub
+Private Sub IzmenenieProcess()
+    On Error GoTo SmotrimOschibku:
+    Dim ZapomniZnach As Integer
+    Dim ZapomniZnachStr As String
+    Dim SQL As String
+    Dim CountZapisi As Integer
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    If TelephoneOtd.Value <> "" And Len(TelephoneOtd.Value) = 10 Then
+        TelephoneStr = "8-(" & Left(TelephoneOtd.Value, 3) & ")-" & Mid(TelephoneOtd.Value, 4, 3) & "-" & Mid(TelephoneOtd.Value, 7, 2) & "-" & Mid(TelephoneOtd.Value, 9)
+    ElseIf TelephoneOtd.Value <> "" Then
+        TelephoneStr = TelephoneOtd.Value
+    Else
+        TelephoneStr = ""
+    End If
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    SQL = "SELECT TOP 1 * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase"
+    Set rs = db.OpenRecordset(SQL)
+    CountZapisi = 1
+    SQL = "SELECT TOP 1 * FROM [;DATABASE=" & (CurrentProject.Path & "\Archive\ArchiveZayavok.accdb") & ";PWD=dddd;].Otdeleniya"
+    Set rs = db.OpenRecordset(SQL)
+    SQL = "SELECT TOP 1 * FROM [;DATABASE=" & (CurrentProject.Path & "\Archive\ArchiveZayavok.accdb") & ";PWD=dddd;].Otdeleniya_Old"
+    Set rs = db.OpenRecordset(SQL)
+    CountZapisi = 2
+    SQL = "SELECT [otd] From [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya Where TheKey = " & ListBox1.Column(0, ListBox1.ListIndex) & ""
+    ZapomniZnach = ListBox1.ListIndex
+    Set rs = db.OpenRecordset(SQL)
+    ZapomniZnachStr = rs.Fields(0)
+    CountZapisi = 3
+    Dim Docha As String
+    SQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya SET otd = '" & FullNameOtd.Value & "', Corpus = '" & CorpusOtd.Value & "', floor = '" & EtazhOtd.Value & "', Color = '" & (TypeOfOtdeleniya_2.ListIndex + 1) & "', Telephone = '" & TelephoneStr & "', ShortName = '" & ShortNameOtd.Value & "' WHERE TheKey = " & ListBox1.Column(0, ListBox1.ListIndex) & ";"
+    CurrentDb.Execute SQL
+    SQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].UsersCheblons SET Отделение = '" & FullNameOtd.Value & "' WHERE Отделение = '" & PolNazv.Caption & "'"
+    CurrentDb.Execute SQL
+    CountZapisi = 4
+    SQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase SET Отделение = '" & FullNameOtd.Value & "' WHERE Отделение = " & "'" & ZapomniZnachStr & "';"
+    CurrentDb.Execute SQL
+    CountZapisi = 5
+    SQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\Archive\ArchiveZayavok.accdb") & ";PWD=dddd;].Otdeleniya SET otd = '" & FullNameOtd.Value & "', Corpus = '" & CorpusOtd.Value & "', floor = '" & EtazhOtd.Value & "', Color = '" & (TypeOfOtdeleniya_2.ListIndex + 1) & "', Telephone = '" & TelephoneStr & "', ShortName = '" & ShortNameOtd.Value & "' WHERE TheKey = " & ListBox1.Column(0, ListBox1.ListIndex) & ";"
+    CurrentDb.Execute SQL
+    CountZapisi = 6
+    If FullNameOtd.Value <> PolNazv.Caption Then
+        SQL = "INSERT INTO [;DATABASE=" & (CurrentProject.Path & "\Archive\ArchiveZayavok.accdb") & ";PWD=dddd;].Otdeleniya_Old" _
+        & "([otd],[TheKey],[DateOfChange]) VALUES " & "('" & ZapomniZnachStr & "' " & ",'" & ListBox1.Column(0, ListBox1.ListIndex) & "', '" & Date & "');"
+        CurrentDb.Execute SQL
+    End If
+    i = MsgBox("Запись успешно Обновлена", vbInformation)
+    Call LoadInSheet
+    ListBox1.Selected(ZapomniZnach) = True
+    Call RabotaFormy_2
+    Call ReadWriteDebug("Форма:Preferences***Процедура:IzmenenieProcess***Знач:")
+    Exit Sub
+SmotrimOschibku:
+    i = MsgBox(Err.Description)
+    If Err.Number = 3021 Then
+        If CountZapisi = 2 Then
+            i = MsgBox("Запись исчезла из списка отделенеий", vbCritical)
+        End If
+        If CountZapisi = 4 Then
+            i = MsgBox("Запись успешно Обновлена", vbInformation)
+            Call LoadInSheet
+            ListBox1.Selected(ZapomniZnach) = True
+            Call RabotaFormy_2
+        End If
+    ElseIf CountZapisi < 2 Then
+        i = MsgBox("Архивная или системная база данных открыты! Закройте их и повторите попытку еще раз", vbCritical)
+    Else
+        i = MsgBox(Err.Description)
+    End If
+End Sub
+Private Sub IzmenenieProcess_2()
+    SQL = "UPDATE Dolzhnosti SET NameOfDolzhnost = '" & FullNameOtd.Value & "' WHERE Код = " & ListBox1.Column(0, ListBox1.ListIndex) & ";"
+    CurrentDb.Execute SQL
+    i = MsgBox("Запись успешно Обновлена", vbInformation)
+    Call LoadInSheet
+    Call RabotaFormy_2
+    Call ReadWriteDebug("Форма:Preferences***Процедура:IzmenenieProcess_2***Знач:")
+End Sub
+Private Sub CheckEdit_Click()
+    Call LoadInSheet
+End Sub
+Private Sub DataField_1_AfterUpdate()
+    Dim State As Boolean
+    State = DataChecker(DataField_2, DataField_1)
+    If State = True Then DataField_1.Value = ""
+    If Not (IsDate(DataField_1)) Then
+        DataField_1.Value = ""
+        i = MsgBox("Неправильный ввод даты", vbCritical)
+    End If
+    If DataField_2.Enabled = False Then
+        DataField_2.Value = DataField_1.Value
+    End If
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya***Процедура:DataField_1***Знач: " & DataField_1.Value)
+End Sub
+Private Sub DataField_2_AfterUpdate()
+    Dim State As Boolean
+    State = DataChecker(DataField_2, DataField_1)
+    If State = True Then DataField_2.Value = ""
+    If Not (IsDate(DataField_2)) Then
+        DataField_2 = ""
+        i = MsgBox("Неправильный ввод даты", vbCritical)
+    End If
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya***Процедура:DataField_2***Знач: " & DataField_2.Value)
+End Sub
+Private Sub DelOtd_Click()
+    On Error GoTo SmotrimOschibku:
+    Dim SQL As String
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Dim ZapomniZnach As Integer
+    Dim ZapomniZnachStr As String
+    Dim Zapis As String
+    Dim Zaratustra As Boolean
+    Zaratustra = True
+    ZapomniZnach = ListBox1.ListIndex
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    If OtdDolzhnst.ListIndex = 0 Then
+        If CheckEdit.Value = True Then
+            Zaratustra = CheckMozhnoLI
+        End If
+        If Zaratustra = True Then
+            If CheckEdit.Value = True Then
+                Call DelSvyazi
+            End If
+            SQL = "SELECT TOP 1 * FROM [;DATABASE=" & (CurrentProject.Path & "\Archive\ArchiveZayavok.accdb") & ";PWD=dddd;].Otdeleniya_Deleted"
+            Set rs = db.OpenRecordset(SQL)
+            SQL = "SELECT TOP 1 * FROM [;DATABASE=" & (CurrentProject.Path & "\Archive\ArchiveZayavok.accdb") & ";PWD=dddd;].Otdeleniya"
+            Set rs = db.OpenRecordset(SQL)
+            SQL = "SELECT [otd] From [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya Where TheKey = " & ListBox1.Column(0, ListBox1.ListIndex) & ""
+            Set rs = db.OpenRecordset(SQL)
+            ZapomniZnachStr = rs.Fields(0)
+            Zapis = ListBox1.Column(4, ListBox1.ListIndex)
+            SQL = "DELETE * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya WHERE TheKey = " & ListBox1.Column(0, ListBox1.ListIndex) & ";"
+            CurrentDb.Execute SQL
+            SQL = "DELETE * FROM [;DATABASE=" & (CurrentProject.Path & "\Archive\ArchiveZayavok.accdb") & ";PWD=dddd;].Otdeleniya WHERE TheKey = " & ListBox1.Column(0, ListBox1.ListIndex) & ";"
+            CurrentDb.Execute SQL
+            SQL = "INSERT INTO [;DATABASE=" & (CurrentProject.Path & "\Archive\ArchiveZayavok.accdb") & ";PWD=dddd;].Otdeleniya_Deleted" _
+            & "([otd_2],[TheKey],[Date_Of_Delete]) VALUES " & "('" & ZapomniZnachStr & "' " & ",'" & ListBox1.Column(0, ListBox1.ListIndex) & "', '" & Date & "');"
+            CurrentDb.Execute SQL
+            i = MsgBox("Запись удалена", vbInformation)
+        Else
+            i = MsgBox("Ничего не удалено!", vbCritical)
+            Exit Sub
+        End If
+    Else
+        Zapis = ListBox1.Column(1, ListBox1.ListIndex)
+        SQL = "DELETE * FROM Dolzhnosti WHERE Код = " & ListBox1.Column(0, ListBox1.ListIndex) & ";"
+        CurrentDb.Execute SQL
+        i = MsgBox("Запись удалена", vbInformation)
+    End If
+    Call LoadInSheet
+    If ZapomniZnach > 0 Then
+        ListBox1.Selected(ZapomniZnach - 1) = True
+    Else
+        ListBox1.Selected(0) = True
+    End If
+    Call RabotaFormy_2
+    Call ReadWriteDebug("Форма:Preferences***Процедура:DelOtd_Click***Знач: Удаление записи - " & Zapis)
+    Exit Sub
+SmotrimOschibku:
+    i = MsgBox(Err.Description, vbCritical)
+End Sub
+Private Sub DelSvyazi()
+    On Error GoTo Desu:
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Dim SQL As String
+    Dim SQL2 As String
+    SQL2 = "SELECT Users.[Username],Users.[Код] FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users, [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya WHERE Otdeleniya.otd = '" & PolNazv.Caption & "' And Users.TheKey = Otdeleniya.TheKey"
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Set rs = db.OpenRecordset(SQL2)
+    Do While (Not rs.EOF)
+        SQL = "DELETE * From [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].UsersCheblons WHERE Код = " & rs.Fields(1)
+        CurrentDb.Execute SQL
+        SQL = "DELETE * From [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Computer_In_Our_System  WHERE User = '" & rs.Fields(0) & "'"
+        CurrentDb.Execute SQL
+        SQL = "DELETE * From [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users  WHERE Username = '" & rs.Fields(0) & "'"
+        CurrentDb.Execute SQL
+        rs.MoveNext
+    Loop
+    i = MsgBox("Отделение и все связанные с ним компьютеры и пользователи (а также шаблоны пользователя) успешно удалены", vbInformation)
+    Exit Sub
+Desu:
+    i = MsgBox("Произошел сбой! Ошибка:" & vbNewLine & Err.Description, vbCritical)
+End Sub
+Private Sub EMail_Field_KeyDown(KeyCode As Integer, Shift As Integer)
+    KeyCode = CheckTheField(KeyCode)
+End Sub
+Private Sub Exit_Button_Click()
+    On Error Resume Next:
+    Forms("Interface_Soglosovaniya").SetFocus
+    Forms("Interface_Soglosovaniya (Kadry)").SetFocus
+    Forms("Interface_Zayavok_Otdeleniya").SetFocus
+    DoCmd.Close acForm, "Preferences"
+End Sub
+Private Sub Filter_1_AfterUpdate()
+    If IsNull(Filter_1.Value) Then
+        Filter_1.Value = "30 дней"
+    End If
+    Call ReadWriteDebug("Форма:Preferences***Процедура:Filter_1_AfterUpdate***Знач: " & Filter_1.Value)
+End Sub
+Private Sub Filter_2_AfterUpdate()
+    If IsNull(Filter_2.Value) Then
+        Filter_2.Value = "Все"
+    End If
+    Call ReadWriteDebug("Форма:Preferences***Процедура:Filter_2_AfterUpdate***Знач: " & Filter_2.Value)
+End Sub
+Private Sub Filter_3_AfterUpdate()
+    If IsNull(Filter_3.Value) Then
+        Filter_3.Value = "Все"
+    End If
+    Call ReadWriteDebug("Форма:Preferences***Процедура:Filter_3_AfterUpdate***Знач: " & Filter_3.Value)
+End Sub
+Private Sub Filter_4_AfterUpdate()
+    If IsNull(Filter_4.Value) Then
+        Filter_4.Value = "Обработанные"
+    End If
+    Call ReadWriteDebug("Форма:Preferences***Процедура:Filter_4_AfterUpdate***Знач: " & Filter_4.Value)
+End Sub
+Private Sub Filter_5_AfterUpdate()
+    If IsNull(Filter_5.Value) Then
+        Filter_5.Value = "Все"
+    End If
+    Call ReadWriteDebug("Форма:Preferences***Процедура:Filter_5_AfterUpdate***Знач: " & Filter_5.Value)
+End Sub
+Private Sub Filter_6_AfterUpdate()
+    If IsNull(Filter_6.Value) Then
+        Filter_6.Value = "Все"
+    End If
+    Call ReadWriteDebug("Форма:Preferences***Процедура:Filter_6_AfterUpdate***Знач: " & Filter_6.Value)
+End Sub
+Private Sub Filter_7_AfterUpdate()
+    If IsNull(Filter_7.Value) Then
+        Filter_7.Value = "Согласованные"
+    End If
+    Call ReadWriteDebug("Форма:Preferences***Процедура:Filter_7_AfterUpdate***Знач: " & Filter_7.Value)
+End Sub
+Private Sub Filter_8_AfterUpdate()
+    If IsNull(Filter_8.Value) Then
+        Filter_8.Value = "Мои Заявки"
+    End If
+    Call ReadWriteDebug("Форма:Preferences***Процедура:Filter_8_AfterUpdate***Знач: " & Filter_8.Value)
+End Sub
+Private Sub FirstName_AfterUpdate()
+    Call Changes(FirstName)
+    On Error Resume Next:
+    Call TolkaBykvy(FirstName.Value, FirstName)
+    Call NormEsliPusto(FirstName)
+End Sub
+Private Sub FullNameOtd_AfterUpdate()
+    On Error Resume Next:
+    FullNameOtd.Value = Replace(FullNameOtd.Value, "'", "")
+    FullNameOtd.Value = Replace(FullNameOtd.Value, "`", "")
+    FullNameOtd.Value = Replace(FullNameOtd.Value, Chr(34), "")
+    Call ReadWriteDebug("Форма:Preferences***Процедура:FullNameOtd_AfterUpdate***Знач: " & FullNameOtd.Value)
+End Sub
+Private Sub OtdDolzhnst_AfterUpdate()
+    If IsNull(OtdDolzhnst.Value) Then
+        OtdDolzhnst.Value = OtdDolzhnst.ItemData(0)
+    End If
+    If OtdDolzhnst.Value = OtdDolzhnst.ItemData(1) Then
+        CorpOtdLabel.Caption = "Наименование Должности:"
+        EtazhOtdLabel.Visible = False
+        CvetOtdLabel.Visible = False
+        ShortNameOtdLabel.Visible = False
+        CheckEdit.Enabled = False
+        ShortNameOtd.Enabled = False
+        ShortNameOtd.Value = ""
+        TypeOfOtdeleniya_2.Enabled = False
+        CorpusOtd.Enabled = False
+        CorpusOtd.Value = ""
+        EtazhOtd.Enabled = False
+        EtazhOtd.Value = ""
+        TelephoneOtd.Enabled = False
+        TelephoneOtd.Value = ""
+        FullNameOtd.Enabled = True
+        DelOtd.Enabled = True
+    Else
+        If CheckEdit.Value = True Then
+            FullNameOtd.Enabled = False
+            DelOtd.Enabled = False
+        End If
+        CorpOtdLabel.Caption = "К:"
+        EtazhOtdLabel.Visible = True
+        CvetOtdLabel.Visible = True
+        ShortNameOtdLabel.Visible = True
+        CheckEdit.Enabled = True
+        ShortNameOtd.Enabled = True
+        TypeOfOtdeleniya_2.Enabled = True
+        CorpusOtd.Enabled = True
+        EtazhOtd.Enabled = True
+        TelephoneOtd.Enabled = True
+    End If
+    Call LoadInSheet
+    Call ReadWriteDebug("Форма:Preferences***Процедура:OtdDolzhnst_AfterUpdate***Знач: " & OtdDolzhnst.Value)
+End Sub
+Private Sub ShortNameOtd_AfterUpdate()
+    On Error Resume Next:
+    ShortNameOtd.Value = Replace(ShortNameOtd.Value, "'", "")
+    ShortNameOtd.Value = Replace(ShortNameOtd.Value, "`", "")
+    ShortNameOtd.Value = Replace(ShortNameOtd.Value, Chr(34), "")
+    Call ReadWriteDebug("Форма:Preferences***Процедура:ShortNameOtd_AfterUpdate***Знач: " & ShortNameOtd.Value)
+End Sub
+Private Sub AddState_Click()
+    If RedactState.Enabled = True Then
+        RedactState.Value = Not (AddState.Value)
+    Else
+        AddState.Value = True
+    End If
+    If AddState.Value = True Then
+        Call AddStatus
+    Else
+        Call RedactStatus
+    End If
+    Call ReadWriteDebug("Форма:Preferences***Процедура:AddState_Click***Знач: " & AddState.Value)
+End Sub
+Private Sub RedactState_Click()
+    AddState.Value = Not (RedactState.Value)
+    If RedactState.Value = True Then
+        Call RedactStatus
+    Else
+        Call AddStatus
+    End If
+    Call ReadWriteDebug("Форма:Preferences***Процедура:RedactState_Click***Знач: " & RedactState.Value)
+End Sub
+Private Sub AddStatus()
+    ChangeZapis.Caption = "Добавить"
+    If OtdDolzhnst.ListIndex = 0 Then DelOtd.Enabled = False
+    FullNameOtd.Value = ""
+    ShortNameOtd.Value = ""
+    TypeOfOtdeleniya_2 = TypeOfOtdeleniya_2.ItemData(0)
+    FullNameOtd.Enabled = True
+    CorpusOtd.Value = ""
+    EtazhOtd.Value = ""
+    TelephoneOtd.Value = ""
+    Call ReadWriteDebug("Форма:Preferences***Процедура:AddStatus***Знач:")
+End Sub
+Private Sub RedactStatus()
+    ChangeZapis.Caption = "Изменить"
+    If OtdDolzhnst.ListIndex = 0 Then CheckEdit.Enabled = True
+    If CheckEdit.Value = True Then
+        FullNameOtd.Enabled = True
+        DelOtd.Enabled = True
+    End If
+    Call LoadInSheet
+    Call ReadWriteDebug("Форма:Preferences***Процедура:RedactStatus***Знач:")
+End Sub
+Private Sub CorpusOtd_AfterUpdate()
+    On Error Resume Next:
+    CorpusOtd.Value = Replace(CorpusOtd.Value, "'", "")
+    CorpusOtd.Value = Replace(CorpusOtd.Value, "`", "")
+    Call ReadWriteDebug("Форма:Preferences***Процедура:CorpusOtd_AfterUpdate***Знач: " & CorpusOtd.Value)
+End Sub
+Private Sub EtazhOtd_AfterUpdate()
+    On Error Resume Next:
+    EtazhOtd.Value = Replace(EtazhOtd.Value, "'", "")
+    EtazhOtd.Value = Replace(EtazhOtd.Value, "`", "")
+    Call ReadWriteDebug("Форма:Preferences***Процедура:EtazhOtd_AfterUpdate***Знач: " & EtazhOtd.Value)
+End Sub
+Private Sub TypeOfOtdeleniya_2_AfterUpdate()
+    If IsNull(TypeOfOtdeleniya_2.Value) Or TypeOfOtdeleniya_2.Value = "" Then
+        TypeOfOtdeleniya_2.Value = TypeOfOtdeleniya_2.ItemData(0)
+    End If
+    Call ReadWriteDebug("Форма:Preferences***Процедура:TypeOfOtdeleniya_2_AfterUpdate***Знач: " & TypeOfOtdeleniya_2.Value)
+End Sub
+Private Sub LastName_AfterUpdate()
+    Call Changes(LastName)
+    On Error Resume Next:
+    Call TolkaBykvy(LastName.Value, LastName)
+    Call NormEsliPusto(LastName)
+End Sub
+Private Sub ListBox1_AfterUpdate()
+    If RedactState.Value = True Then
+        Call RabotaFormy_2
+    End If
+End Sub
+Private Sub Otchestvo_AfterUpdate()
+    Call Changes(Otchestvo)
+    On Error Resume Next:
+    Call TolkaBykvy(Otchestvo.Value, Otchestvo)
+    Call NormEsliPusto(Otchestvo)
+End Sub
+Private Sub NormEsliPusto(ObjP As Object)
+    If IsNull(ObjP) Then ObjP.BackCoro = RGB(240, 101, 130)
+End Sub
+Private Sub OtmenaAvtoZapoln_Click()
+    FirstName.Value = ""
+    LastName.Value = ""
+    Otchestvo.Value = ""
+    Contact.Value = ""
+    Call AutoFill_Click
+    i = MsgBox("Автозаполнение успешно отменено")
+    Call ReadWriteDebug("Форма:Preferences***Процедура:OtmenaAvtoZapoln_Click***Знач:")
+End Sub
+Private Sub PreviewButtonPref_Click()
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Dim SQL As String
+    SQL = "SELECT * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase WHERE Type_Zayavki = 'Транспортный' AND " & "Vyd_Zayavki = 'Постоянный'"
+    Dim Sores(15) As String
+    Dim Zhenya(15) As Integer
+    Call ZapolnenieZheni(Zhenya)
+    Set rs = db.OpenRecordset(SQL)
+    rs.MoveFirst
+    For i = 0 To 14
+        If IsNull(rs.Fields(Zhenya(i))) Then
+            Sores(i) = " "
+        Else
+            Sores(i) = rs.Fields(Zhenya(i))
+        End If
+    Next i
+    If PrintCheblon.Value = False Then
+        Call PrintModule.Printer(Sores(0), ListBoxForPrint, Sores(1), Sores(2), Sores(3), Sores(4), Sores(5), Sores(6), Sores(7), Sores(8), Sores(9), Sores(10), Sores(11), Sores(12), Sores(13), Sores(14), True, "", "", False, Int(RedField.Value), Int(GreenField.Value), Int(BlueField.Value))
+    Else
+        Call PrintModule.PrintCheblon(Int(RedField.Value), Int(GreenField.Value), Int(BlueField.Value), YearT.Value)
+    End If
+    Call ReadWriteDebug("Форма:Preferences***Процедура:PreviewButtonPref_Click***Знач:")
+End Sub
+Private Sub ZapolnenieZheni(ByRef Zhenya() As Integer)
+    Zhenya(0) = 23
+    Zhenya(1) = 8
+    Zhenya(2) = 10
+    Zhenya(3) = 27
+    Zhenya(4) = 21
+    Zhenya(5) = 1
+    Zhenya(6) = 2
+    Zhenya(7) = 3
+    Zhenya(8) = 5
+    Zhenya(9) = 6
+    Zhenya(10) = 14
+    Zhenya(11) = 16
+    Zhenya(12) = 11
+    Zhenya(13) = 12
+    Zhenya(14) = 24
+    Call ReadWriteDebug("Форма:Preferences***Процедура:ZapolnenieZheni***Знач:")
+End Sub
+Private Sub RedField_AfterUpdate()
+    If IsNull(RedField.Value) Or RedField.Value = "" Or Int(RedField.Value) < 0 Or Int(RedField.Value) > 255 Then
+        RedField.Value = 0
+        i = MsgBox("Значение цвета должно быть от 0 до 255", vbCritical)
+    End If
+    CvetLine.BorderColor = RGB(Int(RedField.Value), Int(GreenField.Value), Int(BlueField.Value))
+    Call ReadWriteDebug("Форма:Preferences***Процедура:RedField_AfterUpdate***Знач: " & RedField.Value)
+End Sub
+Private Sub GreenField_AfterUpdate()
+    If IsNull(GreenField.Value) Or GreenField.Value = "" Or Int(GreenField.Value) < 0 Or Int(GreenField.Value) > 255 Then
+        GreenField.Value = 0
+        i = MsgBox("Значение цвета должно быть от 0 до 255", vbCritical)
+    End If
+    CvetLine.BorderColor = RGB(Int(RedField.Value), Int(GreenField.Value), Int(BlueField.Value))
+    Call ReadWriteDebug("Форма:Preferences***Процедура:GreenField_AfterUpdate***Знач: " & GreenField.Value)
+End Sub
+Private Sub BlueField_AfterUpdate()
+    If IsNull(BlueField.Value) Or BlueField.Value = "" Or Int(BlueField.Value) < 0 Or Int(BlueField.Value) > 255 Then
+        BlueField.Value = 0
+        i = MsgBox("Значение цвета должно быть от 0 до 255", vbCritical)
+    End If
+    CvetLine.BorderColor = RGB(Int(RedField.Value), Int(GreenField.Value), Int(BlueField.Value))
+    Call ReadWriteDebug("Форма:Preferences***Процедура:BlueField_AfterUpdate***Знач: " & BlueField.Value)
+End Sub
+Private Sub OnOtd_Click()
+    If OnOtd.Value = True And Otd_Filter.ListCount > 0 Then
+        Otd_Filter.Enabled = True
+        Otd_Filter.Value = Otd_Filter.ItemData(0)
+    Else
+        Otd_Filter.Enabled = False
+    End If
+    Call RunTheAnnDiapazon
+    Call ReadWriteDebug("Форма:Preferences***Процедура:OnOtd_Click***Знач: OnOtd= " & OnOtd.Value)
+End Sub
+Private Sub AnnulateMassButton_Click()
+    On Error GoTo ErHand:
+    If IsNull(DataField_1.Value) Or DataField_1.Value = "" Or IsNull(DataField_2.Value) Or DataField_2.Value = "" Then
+        i = MsgBox("Укажите период!", vbCritical)
+    Else
+        Dim Msg As String
+        Msg = "Вы уверены, что хотите аннулировать все постоянные "
+        If TypeOfPropAnnulate.ListIndex <> 0 Then
+            Msg = Msg & Left(TypeOfPropAnnulate.Value, Len(TypeOfPropAnnulate.Value) - 1) & "е "
+        End If
+        Msg = Msg & "пропуска "
+        If OnOtd.Value = True Then
+            Msg = Msg & "Отделения - " & Chr(34) & Otd_Filter.Value & Chr(34) & " "
+        End If
+        Msg = Msg & "Дата начала действия которых соответствует диапозону " & DataField_2.Value & "-" & DataField_1.Value & "?"
+        Dim MsgPeremen As Integer
+        MsgPeremen = MsgBox(Msg, vbYesNo)
+        If MsgPeremen = 6 Then
+            Dim SQL As String
+            SQL = GetAnnulateSQL(False)
+            CurrentDb.Execute SQL
+            i = MsgBox("Операция успешно выполнена", vbInformation)
+        Else
+            i = MsgBox("Операция Отменена", vbInformation)
+        End If
+    End If
+    Call ReadWriteDebug("Форма:Preferences***Процедура:AnnulateMassButton***Знач:")
+    Exit Sub
+ErHand:
+    i = MsgBox(Err.Description, vbCritical)
+    Call ReadWriteLog(Err.Description, "AnnulateMassButton_Click(Preferences)")
+End Sub
+Private Sub TypeOfPropAnnulate_AfterUpdate()
+    If IsNull(TypeOfPropAnnulate.Value) Or TypeOfPropAnnulate.Value = "" Then
+        TypeOfPropAnnulate.Value = TypeOfPropAnnulate.ItemData(0)
+    End If
+    Call RunTheAnnDiapazon
+    Call ReadWriteDebug("Форма:Preferences***Процедура:TypeOfPropAnnulate_AfterUpdate***Знач: " & TypeOfPropAnnulate.Value)
+End Sub
+Private Sub Otd_Filter_AfterUpdate()
+    If IsNull(Otd_Filter.Value) Or Otd_Filter.Value = "" Then
+        Otd_Filter.Value = Otd_Filter.ItemData(0)
+    End If
+    Call RunTheAnnDiapazon
+    Call ReadWriteDebug("Форма:Preferences***Процедура:Otd_Filter_AfterUpdate***Знач: " & Otd_Filter.Value)
+End Sub
+Private Sub RunTheAnnDiapazon()
+    On Error GoTo EraHand:
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Dim SQL As String
+    SQL = GetAnnulateSQL(True)
+    Set rs = db.OpenRecordset(SQL)
+    rs.MoveFirst
+    DataField_2.Value = rs.Fields(0)
+    rs.MoveLast
+    DataField_1.Value = rs.Fields(0)
+EraHand:
+    If Err.Number = "3021" Then
+        Dim Msg As String
+        Msg = "На отделение " & Chr(34) & Otd_Filter.Value & Chr(34) & " - Еще не создавались постоянные "
+        If TypeOfPropAnnulate.ListIndex = 0 Then
+            Msg = Msg & "пропуска"
+        Else
+            Msg = Msg & Left(TypeOfPropAnnulate.Value, Len(TypeOfPropAnnulate.Value) - 1) & "е пропуска"
+        End If
+        i = MsgBox(Msg, vbCritical)
+        DataField_2.Value = ""
+        DataField_1.Value = ""
+    End If
+End Sub
+Private Sub TypeTelephoneNumber_AfterUpdate()
+    Contact.Value = ""
+    Contact.Enabled = True
+    If TypeTelephoneNumber.Value = "Внешний" Then
+        Contact.InputMask = "8-(000)-000-00-00"
+        Contact.SetFocus
+    ElseIf TypeTelephoneNumber.Value = "Внутренний" Then
+        Contact.InputMask = "(0-00)"
+        Contact.SetFocus
+    Else
+        Contact.Enabled = False
+        AutoFill.SetFocus
+    End If
+    Call ReadWriteDebug("Форма:Preferences***Процедура:TypeTelephoneNumber_AfterUpdate***Знач: " & TypeTelephoneNumber.Value)
+End Sub
+Private Sub Old_Password_KeyDown(KeyCode As Integer, Shift As Integer)
+    KeyCode = CheckTheField(KeyCode)
+End Sub
+Private Sub New_Password_KeyDown(KeyCode As Integer, Shift As Integer)
+    KeyCode = CheckTheField(KeyCode)
+End Sub
+Private Sub New_Password_2_KeyDown(KeyCode As Integer, Shift As Integer)
+    KeyCode = CheckTheField(KeyCode)
+End Sub
+Private Sub Form_Load()
+TypeTelephoneNumber.Value = "Внешний"
+Contact.InputMask = "8-(000)-000-00-00"
+Call LoadCvet(TypeOfOtdeleniya_2)
+If CurrentProject.AllForms("Interface_Soglosovaniya").IsLoaded Then
+    UserLabel.Caption = Forms![Interface_Soglosovaniya].Controls![Label_43].Caption
+    Filter_3.RowSource = "Все;Разовый;Временный;Постоянный"
+    Filter_4.Enabled = True
+    Filter_5.Enabled = True
+    RecAdmin.Visible = True
+    Label_Zad_Cvet.Visible = True
+    TypeOfOtdeleniya.Visible = True
+    TypeOfOtdeleniya.Enabled = True
+    RecProp.Visible = True
+    CvetLine.Visible = True
+    RedField.Visible = True
+    RedField.Enabled = True
+    GreenField.Visible = True
+    GreenField.Enabled = True
+    BlueField.Visible = True
+    BlueField.Enabled = True
+    Zadat.Visible = True
+    Zadat.Enabled = True
+    PrintCheblon.Enabled = True
+    PrintCheblon.Visible = True
+    PreviewButtonPref.Enabled = True
+    PreviewButtonPref.Visible = True
+    YearT.Enabled = True
+    YearT.Visible = True
+    Call LoadOtd(Otd_Filter, 0)
+    Call LoadRedaktorOtdeleniy
+    Call SpisokPT(YearT)
+    Call LoadCvet(TypeOfOtdeleniya)
+    TypeOfOtdeleniya.Value = CStr(TypeOfOtdeleniya.ItemData(0))
+    Call LoadRGB
+    Call MassAnnulateLoad
+ElseIf CurrentProject.AllForms("Interface_Soglosovaniya (Kadry)").IsLoaded Then
+    Filter_6.Enabled = True
+    Filter_7.Enabled = True
+    UserLabel.Caption = Forms![Interface_Soglosovaniya (Kadry)].Controls![Label_43].Caption
+Else
+    On Error GoTo errHandler:
+    UserLabel.Caption = Forms![Interface_Zayavok_Otdeleniya].Controls![Label_43].Caption
+    If Forms![Interface_Zayavok_Otdeleniya].Controls![Label_18].Caption = "Бюро Пропусков" Then
+        Filter_8.Enabled = True
+        RecAdmin.Visible = True
+        Label_Zad_Cvet.Visible = True
+        TypeOfOtdeleniya.Visible = True
+        TypeOfOtdeleniya.Enabled = True
+        RecProp.Visible = True
+        CvetLine.Visible = True
+        RedField.Visible = True
+        RedField.Enabled = True
+        GreenField.Visible = True
+        GreenField.Enabled = True
+        BlueField.Visible = True
+        BlueField.Enabled = True
+        Zadat.Visible = True
+        Zadat.Enabled = False
+        PreviewButtonPref.Enabled = True
+        PreviewButtonPref.Visible = True
+        PrintCheblon.Enabled = True
+        PrintCheblon.Visible = True
+        YearT.Enabled = True
+        YearT.Visible = True
+        Call LoadRedaktorOtdeleniy
+        Call SpisokPT(YearT)
+        Call LoadCvet(TypeOfOtdeleniya)
+        TypeOfOtdeleniya.Value = CStr(TypeOfOtdeleniya.ItemData(0))
+        Call LoadRGB
+    End If
+    Call RollPreferences
+    Exit Sub
+errHandler:
+    Call ReadWriteLog(Err.Description, "Form_Load(Preferences)")
+    UserLabel.Caption = "Администратор"
+End If
+    Call RollPreferences
+    Call ReadWriteDebug("Форма:Preferences***Процедура:Form_Load***Знач:")
+End Sub
+Private Sub LoadRedaktorOtdeleniy()
+    ListBox1.Enabled = True
+    ListBox1.Visible = True
+    FullNameOtd.Visible = True
+    ShortNameOtd.Enabled = True
+    ShortNameOtd.Visible = True
+    TypeOfOtdeleniya_2.Enabled = True
+    TypeOfOtdeleniya_2.Visible = True
+    CorpusOtd.Enabled = True
+    CorpusOtd.Visible = True
+    EtazhOtd.Enabled = True
+    EtazhOtd.Visible = True
+    TelephoneOtd.Enabled = True
+    TelephoneOtd.Visible = True
+    CheckEdit.Enabled = True
+    CheckEdit.Visible = True
+    ChangeZapis.Enabled = True
+    ChangeZapis.Visible = True
+    DelOtd.Visible = True
+    RedaktSpiskOtd.Visible = True
+    RecEditOtd.Visible = True
+    CodeOtdLabel.Visible = True
+    CorpOtdLabel.Visible = True
+    EtazhOtdLabel.Visible = True
+    CvetOtdLabel.Visible = True
+    ShortNameOtdLabel.Visible = True
+    AddState.Enabled = True
+    AddState.Visible = True
+    RedactState.Enabled = True
+    RedactState.Visible = True
+    OtdDolzhnst.Enabled = True
+    OtdDolzhnst.Visible = True
+    Call LoadInSheet
+    Call ReadWriteDebug("Форма:Preferences***Процедура:LoadRedaktorOtdeleniy***Знач:")
+End Sub
+Private Sub MassAnnulateLoad()
+    AnnulateRec.Visible = True
+    AnnulateMasta.Visible = True
+    LineAnn.Visible = True
+    TextPeriod.Visible = True
+    OtdelText.Visible = True
+    TypeOfPropAnnulate.Visible = True
+    TypeOfPropAnnulate.Enabled = True
+    OnOtd.Visible = True
+    OnOtd.Enabled = True
+    OnOtd.Value = False
+    Otd_Filter.Visible = True
+    DataField_2.Enabled = True
+    DataField_2.Visible = True
+    DataField_1.Enabled = True
+    DataField_1.Visible = True
+    AnnulateMassButton.Visible = True
+    AnnulateMassButton.Enabled = True
+    Call ReadWriteDebug("Форма:Preferences***Процедура:MassAnnulateLoad***Знач:")
+End Sub
+Private Sub OffTheRedactor()
+    RedactState.Enabled = False
+    AddState.Value = True
+    PreviewButtonPref.SetFocus
+    Call AddStatus
+    Call ReadWriteDebug("Форма:Preferences***Процедура:OffTheRedactor***Знач:")
+End Sub
+Private Sub TypeOfOtdeleniya_AfterUpdate()
+    If IsNull(TypeOfOtdeleniya.Value) Or TypeOfOtdeleniya.Value = "" Then
+        TypeOfOtdeleniya.Value = CStr(TypeOfOtdeleniya.ItemData(0))
+    End If
+    Call LoadRGB
+    Call ReadWriteDebug("Форма:Preferences***Процедура:TypeOfOtdeleniya_AfterUpdate***Знач: " & TypeOfOtdeleniya.Value)
+End Sub
+Private Sub LoadRGB()
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Dim SQL As String
+    SQL = "SELECT [Red],[Green],[Blue] FROM RGBPREF WHERE Type = '" & TypeOfOtdeleniya.Value & "'"
+    Set rs = db.OpenRecordset(SQL)
+    RedField.Value = rs.Fields(0)
+    GreenField.Value = rs.Fields(1)
+    BlueField.Value = rs.Fields(2)
+    CvetLine.BorderColor = RGB(Int(RedField.Value), Int(GreenField.Value), Int(BlueField.Value))
+    Call ReadWriteDebug("Форма:Preferences***Процедура:LoadRGB***Знач:")
+End Sub
+Private Sub RollPreferences()
+    On Error Resume Next:
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Dim SQLstr As String
+    SQLstr = "SELECT [ЗаявкиЗаПоследние],[ТипПропуска],[ВидПропуска],[Статус(Одмен)],[СтатусБюро],[Кадры1],[Кадры2],[КлассЗаявок(БП)] From [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users WHERE Users.[Username] = '" & UserLabel.Caption & "';"
+    Set rs = db.OpenRecordset(SQLstr)
+    rs.MoveFirst
+    Filter_1.Value = rs.Fields(0)
+    Filter_2.Value = rs.Fields(1)
+    Filter_3.Value = rs.Fields(2)
+    If Filter_4.Enabled = True Then Filter_4.Value = rs.Fields(3)
+    If Filter_5.Enabled = True Then Filter_5.Value = rs.Fields(4)
+    If Filter_6.Enabled = True Then Filter_6.Value = rs.Fields(5)
+    If Filter_7.Enabled = True Then Filter_7.Value = rs.Fields(6)
+    If Filter_8.Enabled = True Then Filter_8.Value = rs.Fields(7)
+    Call ReadWriteDebug("Форма:Preferences***Процедура:RollPreferences***Знач:")
+End Sub
+Private Sub Umolch_Click()
+    Dim SQL As String
+    If Filter_4.Enabled = True Then
+        SQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users SET [ЗаявкиЗаПоследние] = " & "'" & Filter_1.Value & "', " & "[ТипПропуска] = " & "'" & Filter_2.Value & "', " & "[ВидПропуска] = " & "'" & Filter_3.Value & "', " & "[Статус(Одмен)] = " & "'" & Filter_4.Value & "', " & "[СтатусБюро] = " & "'" & Filter_5.Value & "' " & "WHERE  Username = " & Chr(39) & UserLabel.Caption & Chr(39) & ";"
+    ElseIf Filter_6.Enabled = True Then
+        SQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users SET [ЗаявкиЗаПоследние] = " & "'" & Filter_1.Value & "', " & "[ТипПропуска] = " & "'" & Filter_2.Value & "', " & "[ВидПропуска] = " & "'" & Filter_3.Value & "', " & "[Кадры1] = " & "'" & Filter_6.Value & "', " & "[Кадры2] = " & "'" & Filter_7.Value & "' " & "WHERE  Username = " & Chr(39) & UserLabel.Caption & Chr(39) & ";"
+    ElseIf Filter_8.Enabled = True Then
+        SQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users SET [ЗаявкиЗаПоследние] = " & "'" & Filter_1.Value & "', " & "[ТипПропуска] = " & "'" & Filter_2.Value & "', " & "[ВидПропуска] = " & "'" & Filter_3.Value & "', " & "[КлассЗаявок(БП)] = " & "'" & Filter_8.Value & "' " & "WHERE  Username = " & Chr(39) & UserLabel.Caption & Chr(39) & ";"
+    Else
+        SQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users SET [ЗаявкиЗаПоследние] = " & "'" & Filter_1.Value & "', " & "[ТипПропуска] = " & "'" & Filter_2.Value & "', " & "[ВидПропуска] = " & "'" & Filter_3.Value & "' " & "WHERE  Username = " & Chr(39) & UserLabel.Caption & Chr(39) & ";"
+    End If
+    On Error GoTo ErHanlerd:
+    CurrentDb.Execute SQL
+    i = MsgBox("Данные успешно изменены", vbInformation)
+    Call ReadWriteDebug("Форма:Preferences***Процедура:Umolch_Click***Знач:")
+    Exit Sub
+ErHanlerd:
+    Call ReadWriteLog(Err.Description, "Umolch_Click(Preferences)")
+    MsgBox Err.Description
+    i = MsgBox("Ошибка!", vbCritical)
+End Sub
+Private Sub Zadat_Click()
+    Dim SQL As String
+    SQL = "UPDATE RGBPREF SET [Red] = '" & RedField.Value & "', [Green] = '" & GreenField.Value & "', [Blue] = '" & BlueField.Value & "' WHERE [Type] = '" & TypeOfOtdeleniya.Value & "'"
+    CurrentDb.Execute SQL
+    i = MsgBox("Данные Цвета Успешно изменены", vbInformation)
+    Call ReadWriteDebug("Форма:Preferences***Процедура:Zadat_Click***Знач:")
+End Sub
+Private Sub Кнопка13_Click()
+    Dim CheckOldField As Boolean
+    CheckOldField = CheckKavyChka_2(Old_Password.Value)
+    If CheckOldField = False Then
+        If Old_Password.Value <> "" And New_Password.Value <> "" And New_Password_2.Value <> "" Then
+            Dim Old_Passworde As String
+            Dim db1 As Database
+            Dim SQL As String
+            Dim rs1 As DAO.Recordset
+            Dim db2 As Database
+            On Error GoTo ErHandler:
+            SQL = "SELECT [Username],[Password] FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users WHERE  Username = " & Chr(39) & UserLabel.Caption & Chr(39) & ";"
+            Set db1 = DBEngine.Workspaces(0).Databases(0)
+            Set rs1 = db1.OpenRecordset(SQL)
+            rs1.MoveFirst
+            Old_Passworde = CStr(rs1.Fields(1).Value)
+            Dim CheckNewField As String
+            If New_Password.Value <> New_Password_2.Value Then
+                i = MsgBox("Второе и третье поля, для нового пароля - не совпадают", vbCritical)
+                New_Password.BackColor = RGB(240, 101, 130)
+                New_Password_2.BackColor = RGB(240, 101, 130)
+                If Old_Passworde <> Old_Password.Value Then
+                    i = MsgBox("Cтарый пароль введен неверно", vbCritical)
+                    Old_Password.BackColor = RGB(240, 101, 130)
+                Else
+                    Old_Password.BackColor = vbWhite
+                End If
+            Else
+                New_Password.BackColor = vbWhite
+                New_Password_2.BackColor = vbWhite
+                If Old_Passworde <> Old_Password.Value Then
+                    i = MsgBox("Cтарый пароль введен неверно", vbCritical)
+                    Old_Password.BackColor = RGB(240, 101, 130)
+                Else
+                    Old_Password.BackColor = vbWhite
+                    Dim CheckNewPasswordField As Boolean
+                    Dim Simvols As String
+                    Dim Burkva As Boolean
+                    Burkva = False
+                    Simvols = "й,ц,у,к,е,н,г,ш,щ,з,х,ъ,ф,ы,в,а,п,р,о,л,д,ж,э,я,ч,с,м,и,т,ь,б,ю,',ё,`"
+                    CheckNewPasswordField = CheckSimvol(New_Password.Value, Simvols, True)
+                    If CheckNewPasswordField = False Then
+                        SQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users SET Password = " & "'" & New_Password.Value & "'" & " WHERE  Username = " & Chr(39) & UserLabel.Caption & Chr(39) & ";"
+                        CurrentDb.Execute SQL
+                        i = MsgBox("Пароль Изменен успешно!", vbInformation)
+                        Old_Password.Value = ""
+                        New_Password.Value = ""
+                        New_Password_2.Value = ""
+                    Else
+                        i = MsgBox("Введены запретные символы в поле для нового пароля. Запрещены: русские символы, одинарные кавычки", vbCritical)
+                    End If
+                    Call ReadWriteDebug("Форма:Preferences***Процедура:Кнопка13_Click***Знач:")
+                    Exit Sub
+ErHandler:
+                    Call ReadWriteLog(Err.Description, "Кнопка13_Click(Preferences)")
+                    MsgBox Err.Description
+                    i = MsgBox("Что-то пошло не так", vbCritical)
+                End If
+            End If
+            Else
+                i = MsgBox("Есть пустые поля", vbCritical)
+        End If
+    Else
+        i = MsgBox("Введены запретные символы в поле старого пароля", vbCritical)
+    End If
+End Sub
+Private Function CheckTheField(Code As Integer) As Integer
+    If (Code <> 13 And Code <> 9 And Code <> 16 And Code <> 18 And Code <> 8 And Code <> 46) And ((SysCmd(711) = 68748313) Or (Code = 192 Or Code = 222)) Then
+        i = MsgBox("Ввод русских символов (расскладка должна быть английской), одинарных кавычек - невозможно")
+        CheckTheField = 0
+    Else
+    CheckTheField = Code
+    End If
+    'Call ReadWriteDebug("Форма:Preferences***Функция:CheckTheField***Знач: " & TypeTelephoneNumber.Value)
+End Function
+Private Sub Кнопка28_Click()
+
+End Sub
+Private Sub Кнопка44_Click()
+    i = MsgBox("Примечание: порт по умолчанию - 25.Если вы указыаете данные почты первый раз и не знаете свой SMTP порт - после внесения изменений - нажмите " & Chr(34) & "тест отправки" & Chr(34) & " (кнопка станет активной после внесения изменений). Через некоторое время вы увидите маленькое окно с надписью " & Chr(34) & "pismo otpravleno " & Chr(34) & "или " & Chr(34) & "PISMO NE OTPRAVLENO" & Chr(34) & ". если пришло второе - измините значение порта, нажмите изменить и повторите тест", vbInformation)
+End Sub
+Private Sub LoadInSheet()
+    On Error GoTo ErrorHandlerPref:
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    ListBox1.RowSource = ""
+    If OtdDolzhnst.ListIndex = 0 Then
+        ListBox1.ColumnCount = 5
+        ListBox1.ColumnWidths = "400;300;300;300;500;1800;4200;1;1"
+        SQL = "SELECT * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya ORDER BY ShortName"
+    Else
+        ListBox1.ColumnCount = 2
+        ListBox1.ColumnWidths = "400;7600"
+        SQL = "SELECT * FROM Dolzhnosti ORDER BY NameOfDolzhnost"
+    End If
+    Set rs = db.OpenRecordset(SQL)
+    If OtdDolzhnst.ListIndex = 0 Then
+        If CheckEdit.Value = True Then
+            CheckEdit.Caption = "Част. Редакт"
+            If RedactState.Value = True And Forms![Vhod].Controls![SystemLabel_2].Caption = False Then
+                FullNameOtd.Enabled = False
+                DelOtd.Enabled = False
+            End If
+            Do While (Not rs.EOF)
+                ElementStr = rs.Fields(0).Value & ";" & rs.Fields(2).Value & ";" & rs.Fields(3).Value & ";" & rs.Fields(4).Value & ";" & rs.Fields(6).Value & ";"
+                ListBox1.AddItem ElementStr
+                rs.MoveNext
+            Loop
+        Else
+            CheckEdit.Caption = "Полн. Редакт"
+            If RedactState.Value = True Then
+                FullNameOtd.Enabled = True
+                DelOtd.Enabled = True
+            End If
+            Dim Keys() As Integer
+            Dim Yudin As Boolean
+            Keys = GetKeys
+            Do While (Not rs.EOF)
+                Yudin = True
+                For i = 0 To UBound(Keys) - 1
+                    If Int(rs.Fields(0)) = Keys(i) Then
+                        Yudin = False
+                        i = UBound(Keys) - 1
+                    End If
+                Next i
+                If Yudin = True Then
+                    ElementStr = rs.Fields(0).Value & ";" & rs.Fields(2).Value & ";" & rs.Fields(3).Value & ";" & rs.Fields(4).Value & ";" & rs.Fields(6).Value & ";"
+                    ListBox1.AddItem ElementStr
+                End If
+                rs.MoveNext
+            Loop
+        End If
+    Else
+        Do While (Not rs.EOF)
+                ElementStr = rs.Fields(0).Value & ";" & rs.Fields(1).Value
+                ListBox1.AddItem ElementStr
+                rs.MoveNext
+        Loop
+    End If
+    If ListBox1.ListCount > 0 Then
+        ListBox1.Selected(0) = True
+        Call RabotaFormy_2
+    Else
+        If CheckEdit.Value = False Then
+            CheckEdit.Value = True
+            Call LoadInSheet
+        Else
+            Call OffTheRedactor
+        End If
+    End If
+    Call ReadWriteDebug("Форма:Preferences***Процедура:LoadInSheet***Знач:")
+    Exit Sub
+ErrorHandlerPref:
+    Call OffTheRedactor
+    Call ReadWriteLog(Err.Description, "LoadInSheet(Preferences)")
+    MsgBox Err.Description
+End Sub
+Private Sub RabotaFormy_2()
+    On Error Resume Next:
+    PolNazv.BorderColor = vbBlack
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Dim Bzha() As Integer
+    Dim SQL As String
+    Dim Kolvo As Integer
+    If OtdDolzhnst.ListIndex = 0 Then
+        SQL = "SELECT *  FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya WHERE TheKey = " & ListBox1.Column(0, ListBox1.ListIndex)
+        Set rs = db.OpenRecordset(SQL)
+        FullNameOtd.Value = rs.Fields(1)
+        PolNazv.Caption = rs.Fields(1)
+        ShortNameOtd.Value = rs.Fields(6)
+        TypeOfOtdeleniya_2.Value = TypeOfOtdeleniya_2.ItemData(Int(rs.Fields(4)) - 1)
+        CorpusOtd.Value = rs.Fields(2)
+        EtazhOtd.Value = rs.Fields(3)
+        TelephoneOtd.Value = rs.Fields(5)
+    Else
+        SQL = "SELECT [NameOfDolzhnost]  FROM Dolzhnosti WHERE Код = " & ListBox1.Column(0, ListBox1.ListIndex)
+        Set rs = db.OpenRecordset(SQL)
+        FullNameOtd.Value = rs.Fields(0)
+    End If
+End Sub
+Private Sub HowToCheblons_Click()
+    DoCmd.OpenForm "InstructionForm"
+    Call ReadWriteDebug("Форма:Preferences***Процедура:HowToCheblons_Click***Знач:")
+End Sub
+Private Function GetKeys() As Integer()
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Dim Bzha() As Integer
+    Dim SQL As String
+    Dim Kolvo As Integer
+    SQL = "SELECT DISTINCT STR([TheKey])  FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users"
+    Set rs = db.OpenRecordset(SQL)
+    Kolvo = rs.RecordCount
+    Dim OlegLashkun As Integer
+    OlegLashkun = 0
+    ReDim Bzha(Kolvo) As Integer
+        Do While (Not rs.EOF)
+            Bzha(OlegLashkun) = rs.Fields(0)
+            OlegLashkun = OlegLashkun + 1
+        rs.MoveNext
+    Loop
+    GetKeys = Bzha
+    Call ReadWriteDebug("Форма:Preferences***Функция:GetKeys***Знач:")
+End Function
+Private Function GetAnnulateSQL(ByRef ForDate As Boolean) As String
+    If ForDate = False Then
+        GetAnnulateSQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase SET Soglosovanie = -1, State = 'Аннулирован', AnulateDate = " & "#" & Format$(Date, "mm\/dd\/yyyy") & "# WHERE Soglosovanie > 1 And Vyd_Zayavki = 'Постоянный'"
+    Else
+        GetAnnulateSQL = "SELECT [First_Day] FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase WHERE Soglosovanie > 1 And Vyd_Zayavki = 'Постоянный'"
+    End If
+    If Otd_Filter.Enabled = True Then
+        GetAnnulateSQL = GetAnnulateSQL & " AND Отделение = '" & Otd_Filter.Value & "'"
+    End If
+    If TypeOfPropAnnulate.Value <> "все" Then
+        GetAnnulateSQL = GetAnnulateSQL & " AND Type_Zayavki = '" & TypeOfPropAnnulate.Value & "'"
+    End If
+    If Not IsNull(DataField_2.Value) And Not IsNull(DataField_1.Value) And ForDate = False Then
+        GetAnnulateSQL = GetAnnulateSQL & " AND Datediff(" & Chr(34) & "d" & Chr(34) & ",First_Day," & "#" & Format$(DataField_2.Value, "mm\/dd\/yyyy") & "#) <=0 AND Datediff(" & Chr(34) & "d" & Chr(34) & ",First_Day," & "#" & Format$(DataField_1.Value, "mm\/dd\/yyyy") & "#) >=0;"
+    End If
+    If ForDate = True Then
+        GetAnnulateSQL = GetAnnulateSQL & " ORDER BY KEY"
+    End If
+End Function

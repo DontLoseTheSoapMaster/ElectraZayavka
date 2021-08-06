@@ -1,0 +1,40 @@
+Option Compare Database
+Option Explicit
+Dim iCounter As Integer
+Private Sub Form_Load()
+    Dim SQL As String
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Dim CurrentNum As Integer
+    SQL = "SELECT [MessageRazrab] FROM TableTheSystem2"
+    Set rs = db.OpenRecordset(SQL)
+    If Forms![Vhod].Controls![SystemLabel_1].Caption = "Vasabi" Then
+        iCounter = 5
+    Else
+        iCounter = 30
+    End If
+    lblClock.Caption = "Программа закроется через: " & iCounter
+    On Error GoTo NoForm:
+    If Forms![TimeZoneForm].Controls![Profilactica].Value = False Then
+        Technical_Label.Caption = CStr(rs.Fields(0))
+    Else
+        Technical_Label.Caption = "Причина закрытия: Профилактическое отключение системы с 05:00 - 05:05 утра"
+    End If
+    Call ReadWriteDebug("Форма:frmClock***Процедура:Form_Load***Знач:")
+    Exit Sub
+NoForm:
+    Technical_Label.Caption = CStr(rs.Fields(0)) & " Или проф. откл. с 05:00 - 05:05 утра"
+    Call ReadWriteDebug("Форма:frmClock***Процедура:Form_Load***Знач: версия Эксепшон")
+End Sub
+Private Sub Form_Timer()
+  If iCounter > 0 Then iCounter = iCounter - 1
+    If iCounter > 0 Then
+      Me.lblClock.Caption = "Программа закроется через: " _
+        & iCounter
+    Else
+        Call ReadWriteDebug("Форма:frmClock***Процедура:Form_Timer***Знач: ЗакрытиеТаймера")
+        DoCmd.Close acForm, Me.Name, acSaveYes
+    End If
+End Sub
+

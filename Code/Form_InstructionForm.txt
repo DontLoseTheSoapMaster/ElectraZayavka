@@ -1,0 +1,314 @@
+Option Compare Database
+Private Sub ChooseInstruktion_Click()
+    Img.Visible = False
+    Exit_Button.SetFocus
+    One_Cap.Visible = False
+    MiddleCap.Visible = False
+    TwoCap.Visible = False
+    InstructionCap.Visible = False
+    PrevB.Visible = False
+    PrevB.Enabled = False
+    NextB.Visible = False
+    NextB.Enabled = False
+    ChooseInstruktion.Enabled = False
+    ChooseInstruktion.Visible = False
+    TestSound.Enabled = False
+    TestSound.Visible = False
+    CreateCheblons.Enabled = True
+    CreateCheblons.Visible = True
+    LastUpdateInfo.Enabled = True
+    LastUpdateInfo.Visible = True
+    AutomateUpdate.Enabled = True
+    AutomateUpdate.Visible = True
+    Deti.Visible = True
+    Deti.Enabled = True
+    Call ReadWriteDebug("Форма:InstructionForm***Процедура:ChooseInstruktion_Click***Знач:")
+End Sub
+Private Sub Deti_Click()
+    NameInstru.Caption = "Дети"
+    Call SetVisibl("8")
+    NextB.Enabled = True
+    If Len(One_Cap.Caption) = 1 Then
+        Img.Picture = CurrentProject.Path & "\Инструкции\" & NameInstru.Caption & "\00" & One_Cap.Caption & ".jpg"
+    Else
+        Img.Picture = CurrentProject.Path & "\Инструкции\" & NameInstru.Caption & "\0" & One_Cap.Caption & ".jpg"
+    End If
+    Call InfoInstr(Int(One_Cap.Caption))
+    Call ReadWriteDebug("Форма:InstructionForm***Процедура:Deti_Click***Знач:")
+End Sub
+Private Sub LastUpdateInfo_Click()
+    NameInstru.Caption = "ПоследнийАпдейт"
+    Call SetVisibl("12")
+    NextB.Enabled = True
+    If Len(One_Cap.Caption) = 1 Then
+        Img.Picture = CurrentProject.Path & "\Инструкции\" & NameInstru.Caption & "\00" & One_Cap.Caption & ".jpg"
+    Else
+        Img.Picture = CurrentProject.Path & "\Инструкции\" & NameInstru.Caption & "\0" & One_Cap.Caption & ".jpg"
+    End If
+    Call InfoInstr(Int(One_Cap.Caption))
+    Call ReadWriteDebug("Форма:InstructionForm***Процедура:LastUpdateInfo***Знач:")
+End Sub
+Private Sub CreateCheblons_Click()
+    NameInstru.Caption = "Справка по Шаблонам"
+    Call SetVisibl("17")
+    NextB.Enabled = True
+    If Len(One_Cap.Caption) = 1 Then
+        Img.Picture = CurrentProject.Path & "\Инструкции\" & NameInstru.Caption & "\00" & One_Cap.Caption & ".jpg"
+    Else
+        Img.Picture = CurrentProject.Path & "\Инструкции\" & NameInstru.Caption & "\0" & One_Cap.Caption & ".jpg"
+    End If
+    Call InfoInstr(Int(One_Cap.Caption))
+    Call ReadWriteDebug("Форма:InstructionForm***Процедура:CreateCheblons_Click***Знач:")
+End Sub
+Private Sub AutomateUpdate_Click()
+    NameInstru.Caption = "АвтоматическоеОбновление"
+    Call SetVisibl("7")
+    NextB.Enabled = True
+    If Len(One_Cap.Caption) = 1 Then
+        Img.Picture = CurrentProject.Path & "\Инструкции\" & NameInstru.Caption & "\00" & One_Cap.Caption & ".jpg"
+    Else
+        Img.Picture = CurrentProject.Path & "\Инструкции\" & NameInstru.Caption & "\0" & One_Cap.Caption & ".jpg"
+    End If
+    Call InfoInstr(Int(One_Cap.Caption))
+    TestSound.Enabled = True
+    TestSound.Visible = True
+    Call ReadWriteDebug("Форма:InstructionForm***Процедура:AutomateUpdate_Click***Знач:")
+End Sub
+Private Sub TestSound_Click()
+    On Error Resume Next:
+    Call PlayMusicModule.PlayWaveFile
+End Sub
+Private Sub SetVisibl(ByRef Endes As String)
+    Img.Visible = True
+    Exit_Button.SetFocus
+    One_Cap.Visible = True
+    One_Cap.Caption = "1"
+    MiddleCap.Visible = True
+    TwoCap.Visible = True
+    TwoCap.Caption = Endes
+    InstructionCap.Visible = True
+    PrevB.Visible = True
+    NextB.Visible = True
+    ChooseInstruktion.Enabled = True
+    ChooseInstruktion.Visible = True
+    CreateCheblons.Enabled = False
+    CreateCheblons.Visible = False
+    LastUpdateInfo.Enabled = False
+    LastUpdateInfo.Visible = False
+    AutomateUpdate.Enabled = False
+    AutomateUpdate.Visible = False
+    Deti.Visible = False
+    Deti.Enabled = False
+End Sub
+Private Sub Exit_Button_Click()
+    DoCmd.Close acForm, Me.Name
+End Sub
+Private Sub NextB_Click()
+    One_Cap.Caption = CStr(Int(One_Cap.Caption) + 1)
+    If One_Cap.Caption = TwoCap.Caption Then
+        PrevB.SetFocus
+        NextB.Enabled = False
+    End If
+    PrevB.Enabled = True
+    If Len(One_Cap.Caption) = 1 Then
+        Img.Picture = CurrentProject.Path & "\Инструкции\" & NameInstru.Caption & "\00" & One_Cap.Caption & ".jpg"
+    Else
+        Img.Picture = CurrentProject.Path & "\Инструкции\" & NameInstru.Caption & "\0" & One_Cap.Caption & ".jpg"
+    End If
+    Call InfoInstr(Int(One_Cap.Caption))
+    Call ReadWriteDebug("Форма:InstructionForm***Процедура:NextB_Click***Знач: стр - " & One_Cap.Caption)
+End Sub
+Private Sub PrevB_Click()
+    One_Cap.Caption = CStr(Int(One_Cap.Caption) - 1)
+    If One_Cap.Caption = "1" Then
+        NextB.SetFocus
+        PrevB.Enabled = False
+    End If
+    NextB.Enabled = True
+    If Len(One_Cap.Caption) = 1 Then
+        Img.Picture = CurrentProject.Path & "\Инструкции\" & NameInstru.Caption & "\00" & One_Cap.Caption & ".jpg"
+    Else
+        Img.Picture = CurrentProject.Path & "\Инструкции\" & NameInstru.Caption & "\0" & One_Cap.Caption & ".jpg"
+    End If
+    Call InfoInstr(Int(One_Cap.Caption))
+    Call ReadWriteDebug("Форма:InstructionForm***Процедура:PrevB_Click***Знач: стр - " & One_Cap.Caption)
+End Sub
+Private Sub InfoInstr(ByRef Numer As Integer)
+    If NameInstru.Caption = "Справка по Шаблонам" Then
+        Select Case Numer:
+            Case 1:
+                InstructionCap.Caption = "В программе вы можете создавать шаблоны заявок на пропусков. Это необходимо если " _
+                & "К вам часто приезжают одни и те же люди, с одной и той же целью посещения учреждения и чтобы каждый раз " _
+                & "при создании пропуска в этом случае не писать одно и тоже - вы можете создать шаблон, " _
+                & "при выборе которого в будующем, указанная в нем повторяющиеся из раза в раз информация будет автоматически заполняться" _
+                & ". Сейчас мы покажем как это работает. Предположим, что в наше отделение, время от времи, привозят воду для куллера." _
+                & " Ее привозят разные люди, но на одной и той же машине. Эту общую информацию мы указываем, как на рисунке выше" _
+                & "(Кликайте дальше)"
+            Case 2:
+                InstructionCap.Caption = "Заполнив необходимую информацию для вашего шаблона - нажмите 1. В результате " _
+                & "появится окно, в котором вы должны указать название своего будующего шаблона - 2. Вы можете отменить " _
+                & "операцию нажав - " & Chr(34) & "Cancel" & Chr(34) & " Или Оставив название пустым. Нажав 3 - вы сохраните " _
+                & "Шаблон (Кликайте дальше)"
+            Case 3:
+                InstructionCap.Caption = "Если прошло все гладко - вы увидите такое окно (Кликайте дальше)"
+            Case 4:
+                InstructionCap.Caption = "Теперь, если вы кликните на список шаблонов - вы увидите только что созданный вами " _
+                & "шаблон в нем. Сейчас мы его выберем (Кликайте дальше)"
+            Case 5:
+                InstructionCap.Caption = "Как вы видите, вся информация, указанная ранее нами - заполнинась автоматически. " _
+                & "Остается всего лишь заполнить пустые поля.(Кликайте дальше)"
+            Case 6:
+                InstructionCap.Caption = "Заполняем нашу заявку из шаблона и нажимаем сохранить.(Кликайте дальше)"
+            Case 7:
+                InstructionCap.Caption = "Создавать шаблоны можно абсолютно для любых заявок. В том числе и для таких, в которые " _
+                & "данные о посетителях вносятся списком. Давайте создадим для примера такой шаблон. Например, к нам раз в месяц " _
+                & "приезжает театральная труппа, в составе которых - 4 человека. Каждый раз писать одну и ту же информацию - " _
+                & "неудобно, поэтому создадим шаблон. Выберем Пустой Шаблон - 1. Труппа приезжает на несколько дней, поэтому " _
+                & "Мы выбираем Пеший Временный Пропуск - 2. Указываем, что внесем несколько людей - 3. Указываем цель посещения - 4 " _
+                & "после чего нажимаем кнопку 5 - чтобы внести Данные артистов(Кликайте дальше)"
+            Case 8:
+                InstructionCap.Caption = "Заполнив все необходимые данные нажимаем кнопку - " & Chr(34) & "Подтвердить" & Chr(34) & "(Кликайте дальше)"
+            Case 9:
+                InstructionCap.Caption = "Можно теперь сохранить шаблон и задать ему имя (Кликайте дальше)"
+            Case 10:
+                InstructionCap.Caption = "А теперь, нажав на список шаблонов - вы уже увидите два созданных вами шаблона (Кликайте дальше)"
+            Case 11:
+                InstructionCap.Caption = "Предположим теперь, что нам сделали звонок и сообщили, что артист Чак Даниил Нурмагомедович - " _
+                & "уволился. И при этом появилось два новых артиста. В этом случае необходимо шаблон изменить. Для этого - " _
+                & "выбирите шаблон, который нужно изменить (на рисунке он уже выбран). И измените в нем то, что хотите. В " _
+                & "нашем случае для этого нужно войти в список(Кликайте дальше)"
+            Case 12:
+                InstructionCap.Caption = "После внесения изменений в состав труппы - нажимаем кнопку - " & Chr(34) & "Подтвердить" & Chr(34) & "(Кликайте дальше)"
+            Case 13:
+                InstructionCap.Caption = "Далее Нажимаем Кнопку - " & Chr(34) & "Сохранить Шаблон" & Chr(34) & "(1), и указываем называние " _
+                & "созданного ранее нами шаблона(2). Оно должно точь-точь совпасть. И нажимаем - 3(Кликайте дальше)"
+            Case 14:
+                InstructionCap.Caption = "Программа предупредит вас, что Шаблон с таким именем существует и предложит его " _
+                & "изменить. Это то, что нам надо. Нажимаем - " & Chr(34) & "Да" & Chr(34) & "(Кликайте дальше)"
+            Case 15:
+                InstructionCap.Caption = "А что если шаблон уже нигде не используется? И он мешается в списке среди остальных шаблонов? " _
+                & "Тогда его необходимо удалить! Выберите из списка шаблон, который вы хотите Удалить - и затем нажмите кнопку " _
+                & Chr(34) & "Удалить" & Chr(34) & "(Кликайте дальше)"
+            Case 16:
+                InstructionCap.Caption = "Пощады Не будет! Нажимаем - " & Chr(34) & "Да" & Chr(34) & "(Кликайте дальше)"
+            Case 17:
+                InstructionCap.Caption = "Больше этого шаблона вы в списке не увидите. Вы можете создать не более 14 шаблонов. " _
+                & "На этом все, спасибо за внимание"
+            End Select
+        ElseIf NameInstru.Caption = "ПоследнийАпдейт" Then
+            Select Case Numer:
+            Case 1:
+                InstructionCap.Caption = "Главное нововведение этого обновления - кнопка указанная на рисунке выше. Эта " _
+                & "кнопка берет все данные из выделенной заявки и переносит их в окно создания заявок. Рассмотрим пример " _
+                & "(кликайте дальше)"
+            Case 2:
+                InstructionCap.Caption = "В нашем примере выделена заявка, которая имеет следующие данные (см. рисунок) " _
+                & "При нажатии кнопки " & Chr(34) & "Создать на основании выдел. заявки" & Chr(34) & " - все данные " _
+                & "выделенные на рисунке красными прямоугольниками - Попадут в окно заполнения заявок"
+            Case 3:
+                InstructionCap.Caption = "На этом рисунке мы видим результат нажатия кнопки. Как мы видим - все успешно" _
+                & " перенеслось. Поскольку у нас была списочная заявка - то в полях:" & Chr(34) & "ФИО Посетителя" & Chr(34) _
+                & "," & Chr(34) & "Контактная инф. посетителя" & Chr(34) & "," & Chr(34) & "Серия и номер документа" _
+                & " Удостоверяющего личность" & Chr(34) & " - Написанно - " & Chr(34) & "<Таблица>" & Chr(34) _
+                & " .Чтобы удостоверится, что список перенесен корректно - нажмем на кнопку - " & Chr(34) & "Список" & Chr(34)
+            Case 4:
+                InstructionCap.Caption = "Как мы видим - список перенесен корректно"
+            Case 5:
+                InstructionCap.Caption = "Теперь о другом нововведении. Что его оценить - нужно вернутся в интерфейс заявок." _
+                & " В интерфейсе нажмите на флажок - " & Chr(34) & "Режим Поиска" & Chr(34)
+            Case 6:
+                InstructionCap.Caption = "Собственно в новом обновлении появились указанные на рисунке переключателя: " _
+                & Chr(34) & "Начинается с" & Chr(34) & " и " & Chr(34) & "встреч. в тексте" & Chr(34)
+            Case 7:
+                InstructionCap.Caption = "Суть переключателя " & Chr(34) & "Начинается с" & Chr(34) & " следующая: если он выбран  - " _
+                & ", то программа будет искать все заявки, ФИО которых начинается с текста, указаным вами в поле ФИО." _
+                & " Например, в 1 мы написали - " & Chr(34) & "Белентьев" & Chr(34) & " и затем нажали 2. Наш " _
+                & "Результат (3) - это две заявки, в которых ФИО начинается со слова - " & "Белентьев"
+            Case 8:
+                InstructionCap.Caption = "Одна Заявка - Это списочная Заявка. В ней Белентьев идет первым по-списку"
+            Case 9:
+                InstructionCap.Caption = "Вторая Заявка - обычная."
+            Case 10:
+                InstructionCap.Caption = "Однако можем ли мы считать, что мы нашли все заявки, где фигурирует Белентьев?" _
+                & " - однозначно нет. Если Белентьев будет в списочной Заявке, но не будет первым по-списку - тогда он не" _
+                & " будет найден, так как список фамилий - не начинается с его фамилии. Чтобы решить эту проблему - " _
+                & "выберите втрой переключатель - " & Chr(34) & "встреч. в тексте" & Chr(34) & ". В этом случае будут найдены" _
+                & " совпадения с любой частью поля ФИО. В случае с Белентьевым (см. рис) - у нас появилась еще одна заявка." _
+                & " В этой заявке Белентьев находится в списке на 4 месте. Поэтому в первом случае его не было"
+            Case 11:
+                InstructionCap.Caption = "А вот еще одни хорошие новости"
+            Case 12:
+                InstructionCap.Caption = "Хорошего Дня!"
+            End Select
+        ElseIf NameInstru.Caption = "Дети" Then
+            Select Case Numer:
+            Case 1:
+                InstructionCap.Caption = "Данная инструкция важна в первую очередь пользователям палатных отделений" _
+                & ", но важно ознакомится с ней всем. В нашей системе необходимо учитывать детей. Однако дети, очевидно, " _
+                & "пропуск не получают, заявки на них, соответственно не делается (делается только на родителя или " _
+                & "на лицо, сопровождающее ребенка). Ранее ФИО детей вносили в поле для комментариев в заявке на пропуск " _
+                & "сопровождающего лица. Однако теперь - схема будет инная. и здесь мы о ней расскажем. Для начала " _
+                & "нажмите на " & Chr(34) & "Ввести нескольких посетителей" & Chr(34)
+            Case 2:
+                InstructionCap.Caption = "Нажмите на кнопку - " & Chr(34) & "Список" & Chr(34) & "(Любую)"
+            Case 3:
+                InstructionCap.Caption = "Слева, рядом с полями ввода, вы видите новые элементы (стрелка)." _
+                & " Каждый квадратик, левее Поля для ввода ФИО, создан для того, чтобы вы пометили, является ли " _
+                & " человек указанный в поле правее от квадратика - ребенком"
+            Case 4:
+                InstructionCap.Caption = "Рассмотрим следующий случай: в больницу заходит один взрослый с тремя детьми" _
+                & ". Первый в списке у нас взрослый человек. Остальные трое (выделены) - это дети"
+            Case 5:
+                InstructionCap.Caption = "Нажмем на квадратики левее фамилий с детьми(1). Таким образом мы укажем программе, " _
+                & "кто является ребенком. Обратите внимание на поля указанные цифрой (2). Они стали зелеными. Это означает, " _
+                & "что они не обязательны для ввода, т.е. их можно оставить пустыми. Для некоторых детей мы так и сделали." _
+                & " указав всю необходимую информацию нажимаем кнопку (3)."
+            Case 6:
+                InstructionCap.Caption = "Теперь остается заполнить заявку и сохранить ее"
+            Case 7:
+                InstructionCap.Caption = "Нажмем выход и перейдем к интерфейсу заявок. Нажмем Обновить. Выберите новую " _
+                & " заявку в списке. И посмотрите теперь на список посетителей (стрелка)"
+            Case 8:
+                InstructionCap.Caption = "В таблице появилось новое поле (1). " & Chr(34) & "В" & Chr(34) & " - значит " _
+                & "взрослый, а " & Chr(34) & "Р" & Chr(34) & " - Ребенок. Обратите внимание, что там где мы не указали " _
+                & " паспортные данные и телефон (2) - там поля пустые"
+            End Select
+        ElseIf NameInstru.Caption = "АвтоматическоеОбновление" Then
+            Select Case Numer:
+            Case 1:
+                InstructionCap.Caption = "Теперь у вас появилось новое поле (см. рисунок). Если стоит галочка - то каждые 10 " _
+                & "секунд будет обновлятся список ваших заявок, если в них произошли какие-либо изменения (на" _
+                & "пример изменился статус с - " & Chr(34) & "В Обработке(Охр)" & Chr(34) & " - на статус - " & Chr(34) & _
+                "согласована" & Chr(34) & ") Или если появится новая заявка. При этом, помимо обновления -  вы " & _
+                "услышите звук. Образец звука вы можете прослушать нажав на кнопку " & Chr(34) & "Воспроизвести звук" & _
+                Chr(34) & " (Она у вас появилась, если что! Она находится левее кнопки - " & Chr(34) & "Назад" & Chr(34) _
+                & "). Таким образом, вы можете создать заявку и заниматься своими делами, оставив программу открытой" & _
+                " и вы получите звуковое оповещение, когда заявка будет рассмотрена"
+            Case 2:
+                InstructionCap.Caption = "ВАЖНО: НОВАЯ ФУНКЦИЯ НАХОДИТСЯ НА ЭТАПЕ БЕТА-ТЕСТИРОВАНИЯ"
+            Case 3:
+                InstructionCap.Caption = "Листайте дальше, чтобы узнать о чем идет речь"
+            Case 4:
+                InstructionCap.Caption = "Для примера предположим, что вы зашли в отделение медицинской техники. у этого отделения много" _
+                & " заявок и они не могут быть все сразу выгружены в нашу таблицу и поэтому список(1) разбивается на страницы" _
+                & "(2). Обратите внимание на первую выделенную заявку(3). В ней и произойдут изменения, но при этом мы " & _
+                "разберем случай, когда автоматического обновления вашей таблицы, при этом, не произойдет. И это не " & _
+                "произойдет тогда, когда вы перейдете от 0 к следующем страницам (листай дальше)"
+            Case 5:
+                InstructionCap.Caption = "Обратите внимание на (1). Мы перешли к другой странице.Заявки, указанной на прошлом рисунке в списке(2) - " _
+                & " нет. Предположим, что вы оставили программу в этом состоянии и продолжили работать. И тут вам поступил звонок" _
+                & " и вам сообщили, что человека, для которого вы ранее создали заявку на пропуск - не пускают. В Бюро Пропусков сообщили вам, что у заявки" _
+                & " статус - " & Chr(34) & "Отказ(Охр)" & Chr(34) & ", Но ранее вы видели у заявки другой статус. Значит программа не сообщила вам" _
+                & " об этом. И не с проста. На второй странице - заявки, у которой изменился статус - нет. В таком случае" _
+                & " автоматическое обновление, к сожалению, не происходит"
+            Case 6:
+                InstructionCap.Caption = "Вернувшись на 0 страницу вы увидели, что у заявки действительно статус - " & Chr(34) & "Отказ" & Chr(34) & _
+                ". Если бы вы Остались бы на странице 0, а не на 2 - все бы сработало"
+            Case 7:
+                InstructionCap.Caption = "Данная функция не работает у пользователей Бюро Пропусков, Администраторов и в отделе " & _
+                "кадров. В будущем ее функционал, возможно будет расширен, а возможно эта функция будет удалена. Спасибо за " & _
+                " внимание!"
+            End Select
+        End If
+End Sub
+

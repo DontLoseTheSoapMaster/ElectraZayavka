@@ -1,0 +1,23 @@
+Option Compare Database
+Public Sub VyvodSoobcheniya(ByRef User As String)
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Dim SQL As String
+    Dim Soobchenie As String
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    SQL = "SELECT [UserName] FROM UsersSeenMessage WHERE UserName = " & "'" & User & "'"
+    Set rs = db.OpenRecordset(SQL)
+    On Error GoTo Dobavit:
+    rs.MoveFirst
+    Exit Sub
+Dobavit:
+    SQL = "SELECT [MsgLastDate],[SystemMessage] FROM TableTheSystem2"
+    Set rs = db.OpenRecordset(SQL)
+    If Not IsNull(rs.Fields(0)) And Not IsNull(rs.Fields(1)) Then
+        Soobchenie = "Дата сообщения: " & rs.Fields(0) & vbNewLine & rs.Fields(1)
+        i = MsgBox(Soobchenie, vbExclamation, "Системное сообщение")
+        SQL = "INSERT INTO UsersSeenMessage ([UserName]) VALUES " & "('" & User & "');"
+        CurrentDb.Execute SQL
+    End If
+    Call ReadWriteDebug("Модуль:SystemMessageModule***Процедура:VyvodSoobcheniya***Знач:")
+End Sub

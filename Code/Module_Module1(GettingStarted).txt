@@ -1,0 +1,144 @@
+Option Compare Database
+Public Function InitMenus() As Boolean
+   Dim A As String
+    Dim b As Integer
+    Dim c As Boolean
+    c = False
+    b = 0
+    Dim Password As String
+    A = "bbbb"
+    On Error GoTo Blech:
+    If CurrentDb.Properties("AllowFullMenus") = True Then
+        i = MsgBox("Подтвердите Доступ Администратора", vbInformation)
+        While b < 2 And c = False
+            Password = InputBoxDK("Введите пароль еще раз", "Требуется Пароль")
+            If Password = A Then
+                c = True
+                'Forms![Vhod].Controls![CheckUser].Enabled = True
+                'Forms![Vhod].Controls![CheckUser].Visible = True
+            Else
+                b = b + 1
+                i = MsgBox("Неправильно!", vbInformation)
+            End If
+        Wend
+        If c = False Then
+            CurrentDb.Properties("AllowFullMenus") = False
+            i = MsgBox("База данных сейчас закроется. Откройте ее снова и вы зайдете как обычный пользователь.", vbInformation)
+            CurrentDb.Properties("AllowShortcutMenus") = False
+            CurrentDb.Properties("AllowSpecialKeys") = False
+            'CurrentDb.Properties("BreakIntoCode") = False
+            CurrentDb.Properties("AllowShift") = False
+            DoCmd.Quit acPrompt
+        End If
+        Forms![Vhod].Controls![SystemLabel_2].Caption = True
+    Else
+        Forms![Vhod].Controls![SystemLabel_2].Caption = False
+        'DoCmd.SelectObject Vhod, , True
+        'DoCmd.RunCommand (acCmdWindowHide)
+    End If
+    Dim db1 As Database
+    Dim rs1 As DAO.Recordset
+    Set db1 = DBEngine.Workspaces(0).Databases(0)
+    SQL = "SELECT [CanBeOpened] FROM TableTheSystem2"
+    Set rs1 = db1.OpenRecordset(SQL)
+    If rs1.Fields(0) = False And Forms![Vhod].Controls![SystemLabel_2].Caption = False Then
+        DoCmd.OpenForm "frmClock", , , , , acDialog
+        Application.Quit
+    Else
+Blech:
+        DoCmd.OpenForm "TimeZoneForm", , , , , acHidden
+        Call CreateTheTable
+        Call AutoVhod
+    'Call ReadWriteDebug("Модуль:Module1***Процедура:InitMenus***Знач:")
+    End If
+End Function
+Public Sub InitMenus2(ByRef Password As String)
+    Dim A As String
+    A = "bbbb"
+    If A = Password Then
+        CurrentDb.Properties("AllowFullMenus") = True
+        CurrentDb.Properties("AllowShortcutMenus") = True
+        CurrentDb.Properties("AllowSpecialKeys") = True
+        'CurrentDb.Properties("BreakIntoCode") = False
+        CurrentDb.Properties("AllowShift") = True
+        ap_EnableShift
+        DoCmd.Quit acPrompt
+    Else
+        i = MsgBox("Неправильный Пароль", vbCritical)
+    End If
+    Call ReadWriteDebug("Модуль:Module1***Процедура:InitMenus2***Знач:")
+End Sub
+Private Sub AutoVhod()
+    Dim db1 As Database
+    Dim SQL As String
+    Dim SQL2 As String
+    Dim A As String
+    Dim rs1 As DAO.Recordset
+    Dim db2 As Database
+    Dim rs2 As DAO.Recordset
+    Dim b As String
+    A = Environ$("computername")
+    SQL = "SELECT * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Computer_In_Our_System WHERE Computer = " & "'" & A & "';"
+    Set db1 = DBEngine.Workspaces(0).Databases(0)
+    Set rs1 = db1.OpenRecordset(SQL)
+    On Error GoTo ErrorHandlerPass:
+    rs1.MoveFirst
+    b = CStr(rs1.Fields(2).Value)
+    Forms![Vhod].Controls![VyborOtdeleniya].Value = b
+    SQL = "SELECT [Username],[TheKey],[Password] FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users WHERE  Username = " & Chr(39) & b & Chr(39) & ";"
+    Set db1 = DBEngine.Workspaces(0).Databases(0)
+    Set rs1 = db1.OpenRecordset(SQL)
+    rs1.MoveFirst
+    b = CStr(rs1.Fields(2).Value)
+    Forms![Vhod].Controls![PasswordField].Value = b
+    Call Forms.Vhod.CodeKnopki
+    'Call ReadWriteDebug("Модуль:Module1***Процедура:AutoVhod***Знач:")
+    Exit Sub
+ErrorHandlerPass:
+    MsgBox Err.Description
+    Call ReadWriteLog(Err.Description, "AutoVhod(Module1)")
+End Sub
+Private Sub CreateTheTable()
+    Dim SQL As String
+    Dim SQL2 As String
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Dim A As Integer
+    Dim b As Integer
+    SQL2 = "SELECT [BuferNum] FROM TableTheSystem2"
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Set rs = db.OpenRecordset(SQL2)
+    rs.MoveFirst
+    A = Int(rs.Fields(0)) + 1
+    SQL2 = "UPDATE TableTheSystem2 SET BuferNum = " & "'" & A & "';"
+    CurrentDb.Execute SQL2
+    Dim ComputerName As String
+    ComputerName = Environ$("computername")
+    On Error Resume Next:
+    SQL = "CREATE TABLE MainDatabaseBufer" & A _
+    & "([Key] INTEGER PRIMARY KEY,[Фамилия] TEXT(255),[Имя] TEXT(255)," _
+    & "[Отчество] TEXT(255),[№ Компьютера] TEXT(30),[Контактная информация] TEXT(20)," _
+    & "[First_Day] DATE,[Основания проезда] TEXT(255),[ФИО Водителя] LONGTEXT," _
+    & "[ФИО Сопровождающего] TEXT(80), [Серия и номер документа Удостоверяющего личность] LONGTEXT," _
+    & "[Марка автомобиля] TEXT(100),[Государственный номер] TEXT(20),[Коментарии] TEXT(255)," _
+    & "[Отделение] TEXT(150), [период действия пропуска] TEXT(60),[Дата_конца_действия] DATE," _
+    & "[Type_Zayavki] TEXT(30), [Vyd_Zayavki] TEXT(30), [Soglosovanie] INTEGER," _
+    & "[Date_Of_Zapolnenia] DATE,[RefuseReason] LONGTEXT,[State] TEXT(30)," _
+    & "[Numer_Of_Zayavku] TEXT(20),[Gruz] TEXT(255),[TableStat] TEXT(30)," _
+    & "[Kadry] INTEGER,[PosContact] LONGTEXT,[Byro] LOGICAL,[AnulateDate] DATE," _
+    & "[ChildrensState] LONGTEXT,[Colvo_Lydei] INTEGER,[Name_Mat_Cen] LONGTEXT," _
+    & "[Colichestvo_Mat_Cen] LONGTEXT,[Cod_Edintsy_Izmereniya] LONGTEXT)"
+    'SQL = "CREATE TABLE MainDatabaseBufer" _'
+    '& "([Key] INTEGER PRIMARY KEY)"'
+    CurrentDb.Execute SQL
+    On Error GoTo ExHandler:
+    'DoCmd.OpenForm "Hide_And_Sick", acNormal, , , , acHidden
+    Forms![Vhod].Controls![SystemLabel_1].Caption = A
+    'Call ReadWriteDebug("Модуль:Module1***Процедура:CreateTheTable***Знач:")
+    Exit Sub
+ExHandler:
+    MsgBox Err.Description
+    Call ReadWriteLog(Err.Description, "CreateTheTable(Module1)")
+    i = MsgBox("Критическая ошибка №34. Программа сейчас перезапуститься. Если это ошибка появиться несколько раз подряд - сообщите о ней по телефону 2-94 (РДКБ)")
+    DoCmd.Quit acPrompt
+End Sub

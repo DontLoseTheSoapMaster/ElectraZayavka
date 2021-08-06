@@ -1,0 +1,31 @@
+Option Compare Database
+Option Explicit
+#If VBA7 Then
+    Private Declare PtrSafe Function PlaySound& Lib "winmm.dll" Alias _
+            "PlaySoundA" (ByVal lpszName As String, _
+             ByVal hModule As Long, _
+             ByVal dwFlags As Long)
+#Else
+    Private Declare Function PlaySound& Lib "winmm.dll" Alias _
+            "PlaySoundA" (ByVal lpszName As String, _
+             ByVal hModule As Long, _
+             ByVal dwFlags As Long)
+#End If
+Public Const SND_ALIAS& = &H10000
+Public Const SND_ASYNC& = &H1
+Public Const SND_FILENAME& = &H20000
+Public Const SND_NODEFAULT& = &H2
+Public Const SND_NOWAIT& = &H2000
+Public Const SND_RESOURCE& = &H40004
+Public Const SND_SYNC& = &H0
+Public Const SND_LOOP = &H8
+Public Const SND_PURGE = &H40
+Sub PlayWaveFile()
+    On Error Resume Next:
+   PlaySound CurrentProject.Path & "\Sounds\TELEGA.wav", 0, SND_ASYNC
+End Sub
+Sub StopWaveFile()
+   PlaySound vbNullString, 0, SND_PURGE
+End Sub
+
+

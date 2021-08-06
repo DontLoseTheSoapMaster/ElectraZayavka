@@ -1,0 +1,621 @@
+Option Compare Database
+Private Sub Add_2_Click()
+    On Error GoTo Fck:
+    Dim Checka As Boolean
+    Checka = Module4.CheckFields(Me.Form.Name)
+    Dim SQL As String
+    Dim Oschibka As Integer
+    Oschibka = 1
+    If Checka = True Then
+        Dim Odmen1 As String
+        Dim Odmen2 As String
+        Dim Byro As String
+        Dim Kadry1 As String
+        Dim Kadry2 As String
+        If Email_2.Value = "" Or EmailPass_2.Value = "" Then
+            Email_2.Value = ""
+            EmailPass_2.Value = ""
+        End If
+        If Num_Otd.Caption = "1" Then
+            Odmen1 = "Необработанные"
+            Odmen2 = "Все"
+        ElseIf Num_Otd.Caption = "47" Then
+            Kadry1 = "Все"
+            Kadry2 = "Несогласованные"
+        ElseIf Num_Otd.Caption = "55" Then
+            Byro = "Чужие обраб."
+        End If
+        Dim Soga As Integer
+        Soga = List_Of_Prop.ListCount
+        SQL = "INSERT INTO [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & _
+        ";PWD=cccc;].Users ([Username],[Password],[First_Name],[Last_Name],[Othcestvo]," & _
+        "[Contact],[TheKey],[RDKBEMail],[EMailPassword],[EmailState],[ЗаявкиЗаПоследние]," & _
+        "[ТипПропуска],[ВидПропуска],[Статус(Одмен)],[СтатусБюро],[Кадры1],[Кадры2],[КлассЗаявок(БП)]" & _
+        ") VALUES ('" & Username.Value & "','" & Password.Value & "','" & Familiya_2.Value & _
+        "','" & Imya_2.Value & "','" & Otchestvo_2.Value & "','" & Telephone_2.Value & _
+        "','" & Num_Otd.Caption & "','" & Email_2.Value & "','" & EmailPass_2.Value & _
+        "'," & Email_State.Value & ",'30 дней','Все','Все','" & Odmen1 & "','" & Odmen2 & _
+        "','" & Kadry1 & "','" & Kadry2 & "','" & Byro & "');"
+        CurrentDb.Execute SQL
+        Oschibka = 2
+        If ContentFlag.Value = True Then
+            Call CreateFolder
+        End If
+        Oschibka = 3
+        i = MsgBox("Пользователь успешно зарегестрирован!", vbInformation)
+        Call LoadInSheet
+        List_Of_Prop.Selected(Soga) = True
+        Call RabotaFormy2
+    End If
+    Exit Sub
+Fck:
+    i = MsgBox(Err.Description, vbCritical)
+    Select Case Oschibka
+        Case 1
+            i = MsgBox("Пользователь не был создан, не создана и папка", vbCritical)
+        Case 2
+            i = MsgBox("Пользователь успешно создан, но папка не была создана", vbCritical)
+    End Select
+End Sub
+Private Sub CreateFolder()
+    Dim fso
+    Set fso = CreateObject("scripting.filesystemobject"):  fso.CopyFolder ContentPath.Value & "\" & BaseContent.Value, ContentPath.Value & "\" & Content.Value
+    If Not IsNull(Email_2.Value) And Not IsNull(EmailPass_2.Value) And Email_2.Value <> "" And EmailPass_2.Value <> "" Then
+        Call IniFileName(ContentPath.Value & "\" & Content.Value & "\SendMail\sendmail.ini", Email_2.Value, EmailPass_2.Value)
+    Else
+        i = MsgBox("Параметры почты для этого пользователя заданы не будут", vbCritical)
+        Kill ContentPath.Value & "\" & Content.Value & "\SendMail\*.*"
+        RmDir ContentPath.Value & "\" & Content.Value & "\SendMail\"
+    End If
+    Set fs = CreateObject("Scripting.FileSystemObject")
+    Set A = fs.CreateTextFile(ContentPath.Value & "\" & Content.Value & "\Для Прогр. Электронная Заявка На пропуск\ДанныеДляВхода.txt", True)
+    A.WriteLine ("Имя Пользователя: " & Username.Value & vbNewLine & "Пароль: " & Password.Value)
+    A.Close
+End Sub
+Private Sub AllowToEnter_AfterUpdate()
+    SQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya SET AllowOpen = " & AllowToEnter.Value & " WHERE TheKey = " & Num_Otd.Caption
+    CurrentDb.Execute SQL
+End Sub
+Private Sub BaseContent_AfterUpdate()
+    Dim SQL As String
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    SQL = "SELECT [BaseComputer] From TableTheSystem2"
+    Set rs = db.OpenRecordset(SQL)
+    If CheckAttr(ContentPath.Value & "\" & BaseContent.Value) = False Then
+        i = MsgBox(ContentPath.Value & "\" & BaseContent.Value & vbNewLine & "Путь не найден", vbCritical)
+        Call SwitchDara(Int(Num_Otd.Caption))
+    Else
+        SQL = "UPDATE TableTheSystem2 SET BaseComputer = '" & Replace(rs.Fields(0), OldCode.Caption, BaseContent.Value) & "'"
+        CurrentDb.Execute SQL
+        OldCode.Caption = BaseContent.Value
+        i = MsgBox("Папка-Контент Успешно Обновлена", vbInformation)
+    End If
+End Sub
+Private Sub Change_2_Click()
+    On Error GoTo Fck:
+    Dim Checka As Boolean
+    Checka = Module4.CheckFields(Me.Form.Name)
+    Dim SQL As String
+    If Checka = True Then
+        Dim Odmen1 As String
+        Dim Odmen2 As String
+        Dim Byro As String
+        Dim Kadry1 As String
+        Dim Kadry2 As String
+        If Email_2.Value = "" Or EmailPass_2.Value = "" Then
+            Email_2.Value = ""
+            EmailPass_2.Value = ""
+        End If
+        If Num_Otd.Caption = "1" Then
+            Odmen1 = "Необработанные"
+            Odmen2 = "Все"
+        ElseIf Num_Otd.Caption = "47" Then
+            Kadry1 = "Все"
+            Kadry2 = "Несогласованные"
+        ElseIf Num_Otd.Caption = "55" Then
+            Byro = "Чужие обраб."
+        End If
+        SQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & _
+        ";PWD=cccc;].Users Set Username = '" & Username.Value & "',Password = '" & _
+        Password.Value & "', First_Name = '" & Familiya_2.Value & "', Last_Name = '" & Imya_2.Value & _
+        "',Othcestvo = '" & Otchestvo_2.Value & "', Contact = '" & Telephone_2.Value & _
+        "', TheKey = " & Num_Otd.Caption & ", RDKBEMail = '" & Email_2.Value & "'," & _
+        "EMailPassword = '" & EmailPass_2.Value & "', EmailState = " & Email_State.Value & _
+        ", [Статус(Одмен)] = '" & Odmen1 & "', [СтатусБюро] = '" & Odmen2 & "', [Кадры1] = '" & Kadry1 & "'," & _
+        "[Кадры2] = '" & Kadry2 & "', [КлассЗаявок(БП)] = '" & Byro & "' WHERE Код = " & _
+        List_Of_Prop.Column(0, List_Of_Prop.ListIndex) & ";"
+        CurrentDb.Execute SQL
+        If ContentFlag.Value = True Then
+            Call CreateFolder
+        End If
+        i = MsgBox("Изменения успешно внесены!", vbInformation)
+    End If
+    Exit Sub
+Fck:
+    i = MsgBox(Err.Description, vbCritical)
+End Sub
+Private Sub Content_AfterUpdate()
+    If IsNull(Content.Value) Then
+        Content.Value = "COM001"
+    ElseIf Content.Value = "" Then
+        Content.Value = "COM001"
+    Else
+        Content.Value = Replace(Content.Value, "'", "")
+        Content.Value = Replace(Content.Value, "`", "")
+    End If
+End Sub
+
+Private Sub ContentFlag_Click()
+    If ContentFlag.Value = True Then Content.Enabled = True Else Content.Enabled = False
+End Sub
+Private Sub Del_2_Click()
+    Dim g As Integer
+    Dim Soga As Integer
+    g = MsgBox("Вы действительно хотите удалить пользователя: " & List_Of_Prop.Column(2, List_Of_Prop.ListIndex) & "?", vbYesNo)
+    If g = 6 Then
+        SQL = "DELETE * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & _
+        ";PWD=cccc;].Users WHERE Код = " & List_Of_Prop.Column(0, List_Of_Prop.ListIndex)
+        CurrentDb.Execute SQL
+        If List_Of_Prop.ListCount > 1 Then
+            If List_Of_Prop.ListIndex + 1 = List_Of_Prop.ListCount Then
+                Soga = List_Of_Prop.ListIndex - 1
+            Else
+                Soga = List_Of_Prop.ListIndex
+            End If
+            Call LoadInSheet
+            List_Of_Prop.Selected(Soga) = True
+            Call RabotaFormy2
+        Else
+            i = MsgBox("Ни одного пользователя теперь нет!", vbCritical)
+            Call LoadInSheet
+        End If
+    End If
+End Sub
+Private Sub Exit_Button_Click()
+    DoCmd.Close acForm, "Admin_Panel"
+End Sub
+Private Sub SetNewPath_Click()
+    Call GetPathh(ContentPath)
+End Sub
+Private Sub Username_AfterUpdate()
+    Call CheckRus(Username)
+End Sub
+Private Sub Password_AfterUpdate()
+    Call CheckRus(Password)
+End Sub
+Private Sub Familiya_2_AfterUpdate()
+    If Not IsNull(Familiya_2.Value) Or Familiya_2.Value <> "" Then
+        Call Module3.TolkaBykvy(Familiya_2.Value, Familiya_2)
+    End If
+End Sub
+Private Sub Imya_2_AfterUpdate()
+    If Not IsNull(Imya_2.Value) Or Imya_2.Value <> "" Then
+        Call Module3.TolkaBykvy(Imya_2.Value, Imya_2)
+    End If
+End Sub
+Private Sub Otchestvo_2_AfterUpdate()
+    If Not IsNull(Otchestvo_2.Value) Or Otchestvo_2.Value <> "" Then
+        Call Module3.TolkaBykvy(Otchestvo_2.Value, Otchestvo_2)
+    End If
+End Sub
+Private Sub Telephone_2_AfterUpdate()
+    If Not IsNull(Telephone_2.Value) Or Telephone_2.Value <> "" Then
+        If Telephone_2.Value Like "###" Or Telephone_2.Value Like "##########" Then
+            Telephone_2.BackColor = vbWhite
+        Else
+            Telephone_2.BackColor = RGB(240, 101, 130)
+            i = MsgBox("Неправильно введен номер! Он состоит либо из 3 цифр (краткий внутренний формат), либо из 10 (общий формат, без восьмерки или +7)", vbCritical)
+        End If
+    Else
+        Telephone_2.BackColor = vbWhite
+    End If
+End Sub
+Private Sub Email_2_AfterUpdate()
+    Call CheckRus(Email_2)
+    If IsNull(Email_2.Value) Or Email_2.Value = "" Then
+        Email_State.Value = False
+        Email_State.Enabled = False
+    ElseIf Not IsNull(Email_2.Value) And Not IsNull(EmailPass_2.Value) And Email_2.Value <> "" And EmailPass_2.Value <> "" Then
+        Email_State.Value = True
+        Email_State.Enabled = True
+    End If
+End Sub
+Private Sub EmailPass_2_AfterUpdate()
+    Call CheckRus(EmailPass_2)
+    If IsNull(EmailPass_2.Value) Or EmailPass_2.Value = "" Then
+        Email_State.Value = False
+        Email_State.Enabled = False
+    ElseIf Not IsNull(Email_2.Value) And Not IsNull(EmailPass_2.Value) And Email_2.Value <> "" And EmailPass_2.Value <> "" Then
+        Email_State.Value = True
+        Email_State.Enabled = True
+    End If
+End Sub
+Private Sub Form_Load()
+    Exit_Button.SetFocus
+    OtherFunction.Enabled = False
+    OtherFunction.Visible = False
+    List_Of_Prop.Enabled = False
+    List_Of_Prop.Visible = False
+    Username.Enabled = False
+    Username.Visible = False
+    Password.Enabled = False
+    Password.Visible = False
+    Familiya_2.Enabled = False
+    Familiya_2.Visible = False
+    Imya_2.Enabled = False
+    Imya_2.Visible = False
+    Otchestvo_2.Enabled = False
+    Otchestvo_2.Visible = False
+    Telephone_2.Enabled = False
+    Telephone_2.Visible = False
+    Call LoadOtd(Otd_2, 0)
+    Otd_2.Enabled = False
+    Otd_2.Visible = False
+    Email_2.Enabled = False
+    Email_2.Visible = False
+    EmailPass_2.Enabled = False
+    EmailPass_2.Visible = False
+    Email_State.Enabled = False
+    Email_State.Visible = False
+    Change_2.Enabled = False
+    Change_2.Visible = False
+    Add_2.Enabled = False
+    Add_2.Visible = False
+    Del_2.Enabled = False
+    Del_2.Visible = False
+    ContentFlag.Enabled = False
+    ContentFlag.Visible = False
+    ContentLab.Visible = False
+    Content.Enabled = False
+    Content.Visible = False
+    CodeOtd.Visible = False
+    UserCodeLab.Visible = False
+    CodeOtdLab.Visible = False
+    NameUserLab.Visible = False
+    ContentPath.Visible = False
+    SetNewPath.Enabled = False
+    SetNewPath.Visible = False
+    BaseLab.Visible = False
+    BaseContent.Visible = False
+    BaseContent.Enabled = False
+    Users_Prop.Enabled = True
+    Users_Prop.Visible = True
+    Control_Panel.Visible = False
+    Num_Otd.Visible = False
+    AllowToEnter.Enabled = False
+    AllowToEnter.Visible = False
+End Sub
+Private Sub List_Of_Prop_AfterUpdate()
+    Call RabotaFormy2
+End Sub
+Private Sub Otd_2_AfterUpdate()
+    If Otd_2.Value = "" Then Otd_2.Value = Otd_2.ItemData(0)
+    Dim SQL As String
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    SQL = "SELECT [TheKey],[AllowOpen] FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya WHERE Otd = '" & Otd_2.Value & "'"
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Set rs = db.OpenRecordset(SQL)
+    Dim Dara As Integer
+    Dara = Int(Num_Otd.Caption)
+    Num_Otd.Caption = rs.Fields(0)
+    If Dara = 47 Or Dara = 55 Or Dara = 1 Or Int(Num_Otd.Caption) = 47 Or Int(Num_Otd.Caption) = 55 Or Int(Num_Otd.Caption) = 1 Then
+        Call SwitchDara(Int(Num_Otd.Caption))
+    End If
+    OldCode.Caption = BaseContent.Value
+    AllowToEnter.Value = CBool(rs.Fields(1))
+End Sub
+Private Sub SwitchDara(ByRef NewNumer As Integer)
+    Dim SQL As String
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    SQL = "SELECT [BaseComputer] From TableTheSystem2"
+    Set rs = db.OpenRecordset(SQL)
+    Select Case NewNumer:
+        Case 1:
+            StartLab.Caption = CStr(InStr(1, rs.Fields(0), "$1$") + 3)
+            EndLab.Caption = CStr(InStr(1, rs.Fields(0), "$2$") - Int(StartLab.Caption))
+            BaseContent.Value = Mid(rs.Fields(0), Int(StartLab.Caption), Int(EndLab.Caption))
+        Case 47:
+            StartLab.Caption = CStr(InStr(1, rs.Fields(0), "$3$") + 3)
+            EndLab.Caption = "ToEND"
+            BaseContent.Value = Mid(rs.Fields(0), Int(StartLab.Caption))
+        Case 55:
+            StartLab.Caption = CStr(InStr(1, rs.Fields(0), "$2$") + 3)
+            EndLab.Caption = CStr(InStr(1, rs.Fields(0), "$3$") - Int(StartLab.Caption))
+            BaseContent.Value = Mid(rs.Fields(0), Int(StartLab.Caption), Int(EndLab.Caption))
+        Case Else:
+            StartLab.Caption = "1"
+            EndLab.Caption = InStr(1, rs.Fields(0), "$1$")
+            BaseContent.Value = Mid(rs.Fields(0), Int(StartLab.Caption), Int(EndLab.Caption) - 1)
+    End Select
+End Sub
+Private Sub OtherFunction_Click()
+    Exit_Button.SetFocus
+    OtherFunction.Enabled = False
+    OtherFunction.Visible = False
+    List_Of_Prop.Enabled = False
+    List_Of_Prop.Visible = False
+    Username.Enabled = False
+    Username.Visible = False
+    Password.Enabled = False
+    Password.Visible = False
+    Familiya_2.Enabled = False
+    Familiya_2.Visible = False
+    Imya_2.Enabled = False
+    Imya_2.Visible = False
+    Otchestvo_2.Enabled = False
+    Otchestvo_2.Visible = False
+    Telephone_2.Enabled = False
+    Telephone_2.Visible = False
+    Otd_2.Enabled = False
+    Otd_2.Visible = False
+    Email_2.Enabled = False
+    Email_2.Visible = False
+    EmailPass_2.Enabled = False
+    EmailPass_2.Visible = False
+    Email_State.Enabled = False
+    Email_State.Visible = False
+    Change_2.Enabled = False
+    Change_2.Visible = False
+    Add_2.Enabled = False
+    Add_2.Visible = False
+    Del_2.Enabled = False
+    Del_2.Visible = False
+    ContentFlag.Enabled = False
+    ContentFlag.Visible = False
+    ContentLab.Visible = False
+    Content.Enabled = False
+    Content.Visible = False
+    CodeOtd.Visible = False
+    UserCodeLab.Visible = False
+    CodeOtdLab.Visible = False
+    NameUserLab.Visible = False
+    ContentPath.Visible = False
+    SetNewPath.Enabled = False
+    SetNewPath.Visible = False
+    BaseLab.Visible = False
+    BaseContent.Visible = False
+    BaseContent.Enabled = False
+    Users_Prop.Enabled = True
+    Users_Prop.Visible = True
+    Control_Panel.Visible = False
+    Num_Otd.Visible = False
+    AllowToEnter.Enabled = False
+    AllowToEnter.Visible = False
+    List_Of_Prop.RowSource = ""
+End Sub
+Private Sub Users_Prop_Click()
+    Exit_Button.SetFocus
+    OtherFunction.Enabled = True
+    OtherFunction.Visible = True
+    List_Of_Prop.Enabled = True
+    List_Of_Prop.Visible = True
+    Username.Enabled = True
+    Username.Visible = True
+    Password.Enabled = True
+    Password.Visible = True
+    Familiya_2.Enabled = True
+    Familiya_2.Visible = True
+    Imya_2.Enabled = True
+    Imya_2.Visible = True
+    Otchestvo_2.Enabled = True
+    Otchestvo_2.Visible = True
+    Telephone_2.Enabled = True
+    Telephone_2.Visible = True
+    Otd_2.Enabled = True
+    Otd_2.Visible = True
+    Otd_2.Left = 3118
+    Otd_2.Top = 6235
+    Email_2.Enabled = True
+    Email_2.Visible = True
+    EmailPass_2.Enabled = True
+    EmailPass_2.Visible = True
+    Email_State.Enabled = True
+    Email_State.Visible = True
+    Change_2.Enabled = True
+    Change_2.Visible = True
+    Add_2.Enabled = True
+    Add_2.Visible = True
+    Del_2.Enabled = True
+    Del_2.Visible = True
+    ContentFlag.Visible = True
+    ContentLab.Visible = True
+    Content.Visible = True
+    Content.Value = "COM001"
+    CodeOtd.Visible = True
+    UserCodeLab.Visible = True
+    CodeOtdLab.Visible = True
+    NameUserLab.Visible = True
+    ContentPath.Visible = True
+    SetNewPath.Enabled = True
+    SetNewPath.Visible = True
+    BaseLab.Visible = True
+    BaseContent.Visible = True
+    Call LoadPath
+    Control_Panel.Visible = True
+    Control_Panel.Caption = "Function: Users"
+    Num_Otd.Visible = True
+    Users_Prop.Enabled = False
+    Users_Prop.Visible = False
+    AllowToEnter.Enabled = True
+    AllowToEnter.Visible = True
+    Call LoadInSheet
+    If List_Of_Prop.ListCount > 0 Then
+        List_Of_Prop.Selected(0) = True
+        Call RabotaFormy2
+    End If
+End Sub
+Private Sub LoadPath()
+    On Error Resume Next:
+    Dim SQL As String
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    SQL = "SELECT [Content_Path],[BaseComputer] From TableTheSystem2"
+    Set rs = db.OpenRecordset(SQL)
+    If CheckAttr(rs.Fields(0)) = True Then
+        ContentFlag.Enabled = True
+        ContentFlag.Value = True
+        Content.Enabled = True
+        ContentPath.Value = rs.Fields(0)
+        BaseContent.Enabled = True
+        BaseContent.Value = rs.Fields(1)
+    Else
+        ContentFlag.Enabled = False
+        ContentFlag.Value = False
+        Content.Enabled = False
+        i = MsgBox("Путь не найден!", vbInformation)
+        ContentPath.Value = ""
+        If Not IsNull(rs.Fields(0)) Then
+            ContentPath.Value = rs.Fields(0)
+        End If
+    End If
+End Sub
+Private Function CheckAttr(ByRef Path As String) As Boolean
+    Dim x As String
+    On Error Resume Next
+    x = GetAttr(Path) And 0
+    If x = "" Then
+        CheckAttr = False
+    Else
+        CheckAttr = True
+    End If
+End Function
+Private Sub GetPathh(ByRef Stroka As Object)
+   Dim Folder As Integer
+    Folder = Application.FileDialog(msoFileDialogFolderPicker).Show
+    If Folder = 0 Then
+        i = MsgBox("Ничего не выбрано", vbCritical)
+    Else
+        Stroka.Value = CStr(Application.FileDialog(msoFileDialogFolderPicker).SelectedItems(1))
+        Dim SQL As String
+        SQL = "UPDATE TableTheSystem2 SET Content_Path = '" & Stroka.Value & "'"
+        CurrentDb.Execute SQL
+        Call GetBase
+        ContentFlag.Enabled = True
+    End If
+End Sub
+Private Sub GetBase()
+    Dim fd As FileDialog
+    Set fd = Application.FileDialog(msoFileDialogFolderPicker)
+    fd.InitialFileName = ContentPath.Value
+    Dim Djoga As Integer
+    Dim Couner As Integer
+    Dim TextUpdate As String
+    Dim Sega As String
+    Djoga = 0
+    Couner = 1
+    Dim Folder As Integer
+    Do
+        fd.InitialFileName = ContentPath.Value
+        Select Case Couner
+            Case 1:
+                Sega = "Для Отделений"
+            Case 2:
+                Sega = "Для Администраторов"
+            Case 3:
+                Sega = "Для Сотрудников Бюро Пропусков"
+            Case 4:
+                Sega = "Для Сотрудников Отдела Кадров"
+        End Select
+        i = MsgBox("Выберите папку - основу " & Sega & "(она должна быть внутри пути, который вы указывали ранее)", vbInformation)
+        Folder = fd.Show
+        Djoga = InStr(1, CStr(fd.SelectedItems(1)), ContentPath.Value)
+        If Djoga <> 0 And Folder <> 0 Then
+            TextUpdate = TextUpdate & Mid(fd.SelectedItems(1), Len(ContentPath.Value) + 2) & "$" & Couner & "$"
+            Couner = Couner + 1
+        Else
+            i = MsgBox("Ошибка!!(Не забывайте, что папка должна быть внутри пути, который вы задали в самом начале", vbCritical)
+        End If
+    Loop While Djoga = 0 Or Folder = 0 Or Couner < 5
+    TextUpdate = Replace(TextUpdate, "$4$", "")
+    SQL = "UPDATE TableTheSystem2 SET BaseComputer = '" & TextUpdate & "'"
+    CurrentDb.Execute SQL
+    Call SwitchDara(Int(Num_Otd.Caption))
+End Sub
+Private Sub LoadInSheet()
+    Dim SQL As String
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    If Control_Panel.Caption = "Function: Users" Then
+        SQL = "SELECT [Код],[Username],[TheKey] FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users"
+        Set rs = db.OpenRecordset(SQL)
+        Dim ElementStr As String
+        List_Of_Prop.ColumnCount = 3
+        List_Of_Prop.ColumnWidths = "500;500;4200"
+        List_Of_Prop.RowSource = ""
+        Do While (Not rs.EOF)
+            ElementStr = rs.Fields(0).Value & ";" & rs.Fields(2).Value & ";" & rs.Fields(1)
+            List_Of_Prop.AddItem ElementStr
+            rs.MoveNext
+        Loop
+        If List_Of_Prop.ListCount = 0 Then
+            Call NoUsers
+        Else
+            Change_2.Enabled = True
+            Del_2.Enabled = True
+        End If
+    End If
+End Sub
+Private Sub NoUsers()
+    List_Of_Prop.RowSource = ""
+    Username.Value = ""
+    Password.Value = ""
+    Familiya_2.Value = ""
+    Imya_2.Value = ""
+    Otchestvo_2.Value = ""
+    Telephone_2.Value = ""
+    Email_2.Value = ""
+    EmailPass_2.Value = ""
+    Exit_Button.SetFocus
+    Change_2.Enabled = False
+    Del_2.Enabled = False
+End Sub
+Private Sub RabotaFormy2()
+    Dim SQL As String
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    If Control_Panel.Caption = "Function: Users" Then
+        SQL = "SELECT * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users WHERE Код = " & List_Of_Prop.Column(0, List_Of_Prop.ListIndex)
+        Set rs = db.OpenRecordset(SQL)
+        Dim SQL2 As String
+        Dim rs2 As DAO.Recordset
+        SQL2 = "SELECT [otd],[AllowOpen] FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya WHERE TheKey = " & rs.Fields(7)
+        Set rs2 = db.OpenRecordset(SQL2)
+        Username.Value = rs.Fields(1)
+        Password.Value = rs.Fields(2)
+        Familiya_2.Value = rs.Fields(3)
+        Imya_2.Value = rs.Fields(4)
+        Otchestvo_2.Value = rs.Fields(5)
+        Telephone_2.Value = rs.Fields(6)
+        Otd_2.Value = rs2.Fields(0)
+        Call Otd_2_AfterUpdate
+        Email_2.Value = rs.Fields(8)
+        EmailPass_2.Value = rs.Fields(9)
+        Email_State.Value = CBool(rs.Fields(10))
+        Num_Otd.Caption = rs.Fields(7)
+        AllowToEnter.Value = CBool(rs2.Fields(1))
+    End If
+End Sub
+Private Sub CheckRus(ObjT As Object)
+    Dim Simvols As String
+    Simvols = "й,ц,у,к,е,н,г,ш,щ,з,х,ъ,ф,ы,в,а,п,р,о,л,д,ж,э,я,ч,с,м,и,т,ь,б,ю,',ё,`"
+    Dim ZapretSimvols() As String
+    ZapretSimvols() = Split(Simvols, ",")
+    For i = 0 To UBound(ZapretSimvols) - 1
+        If InStr(1, ObjT.Value, ZapretSimvols(i), vbTextCompare) > 0 Then
+            ObjT.BackColor = RGB(240, 101, 130)
+            i = MsgBox("В тексте есть запрещенные символы!!!", vbCritical)
+            Exit Sub
+        End If
+    Next i
+    ObjT.BackColor = vbWhite
+End Sub
+
+

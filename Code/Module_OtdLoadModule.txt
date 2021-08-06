@@ -1,0 +1,36 @@
+Option Compare Database
+Public Sub LoadOtd(ByRef ASKA As Object, ByRef AllV As Integer)
+    Dim SQL As String
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    SQL = "SELECT [otd] From [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya"
+    If AllV > 0 Then
+         SQL = SQL & " WHERE Color = " & AllV
+    End If
+    SQL = SQL & " ORDER BY [Otd]"
+    ASKA.RowSource = ""
+    Set rs = db.OpenRecordset(SQL)
+    Do While Not rs.EOF
+        ASKA.AddItem rs.Fields(0)
+        rs.MoveNext
+    Loop
+End Sub
+Public Sub LoadKeys(ByRef ASKA As Object, ByRef ASKA2 As Object, ByRef AllV As Integer)
+    Dim SQL As String
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    SQL = "SELECT * From [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya"
+    If AllV > 0 Then
+         SQL = SQL & " WHERE Color = " & AllV
+    End If
+    SQL = SQL & " ORDER BY [Otd]"
+    ASKA.RowSource = ""
+    Set rs = db.OpenRecordset(SQL)
+    Do While Not rs.EOF
+        ASKA.AddItem rs.Fields(0)
+        ASKA2.AddItem rs.Fields(6)
+        rs.MoveNext
+    Loop
+End Sub

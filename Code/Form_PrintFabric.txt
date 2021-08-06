@@ -1,0 +1,581 @@
+Option Compare Database
+Private Sub Comment_AfterUpdate()
+    Call UpdateDan
+    Call ReadWriteDebug("Форма:PrintFabric***Процедура:Comment_AfterUpdate***Знач: " & Comment.Value)
+End Sub
+Private Sub DelayPrint_AfterUpdate()
+    If IsNull(DelayPrint.Value) Or DelayPrint.Value = "" Or Int(DelayPrint.Value) < 1 Or Int(DelayPrint.Value) > 180 Then
+        DelayPrint.Value = 1
+    End If
+    Call ReadWriteDebug("Форма:PrintFabric***Процедура:DelayPrint_AfterUpdate***Знач: " & DelayPrint.Value)
+End Sub
+Private Sub Exit_Button_Click()
+    On Error Resume Next:
+    Forms("Interface_Soglosovaniya").SetFocus
+    DoCmd.Close acForm, "PrintFabric"
+    Call ReadWriteDebug("Форма:PrintFabric***Процедура:Exit_Button_Click***Знач:")
+End Sub
+Private Sub Filter_1_AfterUpdate()
+    If IsNull(Filter_1.Value) Or Filter_1.Value = "" Then Filter_1.Value = "Транспортный"
+    If CurrentProject.AllForms("Interface_Zayavok_Otdeleniya").IsLoaded Then
+        If Filter_1.Value = "Транспортный" Then
+            Filter_2.RowSource = "Постоянный"
+            Filter_2.Value = "Постоянный"
+        Else
+            Filter_2.RowSource = "Разовый;Временный;Постоянный"
+        End If
+    End If
+    Label_Start.Caption = Left(Filter_2.Value, 1) & Left(Filter_1.Value, 1)
+    Label_End.Caption = Left(Filter_2.Value, 1) & Left(Filter_1.Value, 1)
+    Call UpdateDan
+    Call ReadWriteDebug("Форма:PrintFabric***Процедура:Filter_1_AfterUpdate***Знач: " & Filter_1.Value)
+End Sub
+Private Sub Filter_2_AfterUpdate()
+    If IsNull(Filter_2.Value) Or Filter_2.Value = "" Then Filter_2.Value = "Постоянный"
+    Label_Start.Caption = Left(Filter_2.Value, 1) & Left(Filter_1.Value, 1)
+    Label_End.Caption = Left(Filter_2.Value, 1) & Left(Filter_1.Value, 1)
+    Call UpdateDan
+    Call ReadWriteDebug("Форма:PrintFabric***Процедура:Filter_2_AfterUpdate***Знач: " & Filter_2.Value)
+End Sub
+Private Sub Form_Load()
+    Filter_1.Value = "Транспортный"
+    Filter_2.Value = "Постоянный"
+    RezhimPechati.Value = False
+    OnlySoglas.Value = True
+    Call LoadCvet(TypeOfOtdeleniya)
+    TypeOfOtdeleniya.AddItem "Все", 0
+    TypeOfOtdeleniya.Value = CStr(TypeOfOtdeleniya.ItemData(0))
+    If CurrentProject.AllForms("Interface_Zayavok_Otdeleniya").IsLoaded Then OnlySoglas.Enabled = False
+    Call UpdateDan
+    Call LoadOtd(Otd, 0)
+    Otd.AddItem "Все", 0
+    Otd.Value = Otd.ItemData(0)
+    Call ReadWriteDebug("Форма:PrintFabric***Процедура:Form_Load***Знач:")
+End Sub
+Private Sub UpdateDan()
+    Dim SQL As String
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    SQL = GetSQLCOnveera
+    Set rs = db.OpenRecordset(SQL)
+    On Error GoTo EraHandler:
+    If RezhimPechati.Value = False Then
+        Preview.Enabled = True
+        rs.MoveFirst
+        Text_Start.Value = Mid(rs.Fields(0), 3)
+        Preview.Caption = "Предпросмотр пропуска с номером: " & Text_Start.Value
+        MinValue.Caption = Label_Start.Caption & Text_Start.Value
+        rs.MoveLast
+        Text_End.Value = Mid(rs.Fields(0), 3)
+        Count_2.Caption = Text_End.Value
+        MaxValue.Caption = Label_Start.Caption & Text_End.Value
+        PrintSeries.Enabled = True
+    Else
+        MaxValue.Caption = rs.Fields(0)
+        If MaxValue.Caption > 0 Then
+            PrintSeries.Enabled = True
+            Preview.Enabled = True
+            Preview.Caption = "Предпросмотр пропуска с номером: 1"
+            Text_Start_2.Enabled = True
+            Text_Start_2.Visible = True
+            Text_End_2.Enabled = True
+            Text_End_2.Visible = True
+            LineDip_2.Visible = True
+            Diap_2.Visible = True
+            Text_Start_2.Value = 1
+            Text_End_2.Value = MaxValue.Caption
+            Count_2.Caption = Text_End_2.Value
+        Else
+            PrintSeries.Enabled = False
+            Preview.Caption = "Предпросмотр пропуска с номером: "
+            Preview.Enabled = False
+        End If
+    End If
+    Exit Sub
+EraHandler:
+    MsgBox Err.Description
+    Call ReadWriteLog(Err.Description, "UpdateDan(PrintFabric)")
+    PrintSeries.Enabled = False
+    Preview.Caption = "Предпросмотр пропуска с номером: "
+    Preview.Enabled = False
+End Sub
+Private Sub Info_Click()
+    i = MsgBox("Этот модуль нужен для печати множества пропусков. Для начала выберите режим, нажав на кнопку слева от кнопки печати. Режим -" & Chr(34) & "Печать по Диапозону" & Chr(34) & " - Позволяет напечатать пропуска в диапозоне, который вы указываете в полях сверху. Режим - " & Chr(34) & "Комментарии" & Chr(34) & " - Позволяет напечатать все пропуска, которые содержит комментарий, написанный вами. Прежда чем начать пользоваться этим модулем - сосчитайте сколько секунд идет на печать одного пропуска. После этого установите задержку равную примерно времени печати одного пропуска (можно немного меньше).", vbInformation)
+End Sub
+Private Sub Preview_Click()
+    Dim Wapp As String
+    Wapp = "Word.Application"
+    If IsAppRunning(Wapp) = False Then
+        Info.SetFocus
+        PrintSeries.Visible = False
+        RezhimPechati.Visible = False
+        TekZayavkaLabel.Visible = True
+        Dim Pol As Boolean
+        Dim Colerist() As Integer
+        Dim g As Integer
+        Dim Baga As Boolean
+        Baga = True
+        g = 8
+        If Left(Label_Start.Caption, 2) = "ПТ" Then
+            If CurrentProject.AllForms("Interface_Zayavok_Otdeleniya").IsLoaded Then
+                g = 6
+                Pol = True
+            Else
+                 g = MsgBox("Печать пропусков (да) или заявок(нет)", vbYesNo, "Печать пропусков (да) или заявок(нет)")
+                If g = 7 Then
+                    Pol = False
+                    ReDim Colerist(3) As Integer
+                    Colerist(0) = 0
+                    Colerist(1) = 0
+                    Colerist(2) = 0
+                Else
+                    Pol = True
+                End If
+            End If
+        Else
+            ReDim Colerist(3) As Integer
+            Colerist(0) = 0
+            Colerist(1) = 0
+            Colerist(2) = 0
+        End If
+        If TypePechati.ListIndex = 0 Then
+            ReDim Colerist(3) As Integer
+            Baga = False
+            Colerist(0) = -1
+            Colerist(1) = 0
+            Colerist(2) = 0
+        End If
+        Dim SQL As String
+        Dim SQL2 As String
+        Dim Sores(16) As String
+        Dim Zhenya(16) As Integer
+        Dim MovePerem As Integer
+        Call ZapolnenieZheni(Zhenya)
+        Bazha = "*"
+        Dim db As Database
+        Dim rs As DAO.Recordset
+        Set db = DBEngine.Workspaces(0).Databases(0)
+        If RezhimPechati.Value = False Then
+            SQL = "SELECT * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase WHERE Type_Zayavki = " & "'" & Filter_1.Value & "' AND " & "Vyd_Zayavki = " & "'" & Filter_2.Value & "' AND Numer_Of_Zayavku = '" & Left(Filter_2.Value, 1) & Left(Filter_1.Value, 1) & Text_Start.Value & "' ORDER BY KEY"
+            MovePerem = 1
+        Else
+            MovePerem = Text_Start_2.Value
+            If IsNull(Comment.Value) Then
+                SQL = "SELECT * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase WHERE ((Коментарии = '' OR Коментарии IS NULL) AND Type_Zayavki = " & " '" & Filter_1.Value & "' AND " & "Vyd_Zayavki = " & "'" & Filter_2.Value & "') " & "ORDER BY KEY"
+            Else
+                SQL = "SELECT * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase WHERE Коментарии = " & "'" & Comment.Value & "' AND Type_Zayavki = " & "'" & Filter_1.Value & "' AND " & "Vyd_Zayavki = " & "'" & Filter_2.Value & "' " & "ORDER BY KEY"
+            End If
+        End If
+        Set rs = db.OpenRecordset(SQL)
+        If rs.RecordCount > 0 Then
+        rs.Move (Int(MovePerem - 1))
+                For i = 0 To 15
+                    If IsNull(rs.Fields(Zhenya(i))) Then
+                        Sores(i) = " "
+                    Else
+                        Sores(i) = rs.Fields(Zhenya(i))
+                    End If
+                Next i
+                TekZayavkaLabel.Caption = "Печатается: " & Sores(1)
+                If CBool(rs.Fields(25)) = True Then
+                    NameNumField.Visible = True
+                    Call LoadImyaNomerTelTabel(Sores(2), Sores(3), Sores(4), Sores(0), NameNumField)
+                End If
+                 If Pol = True And Baga = True Then
+                    Colerist = GetColor(Sores(11))
+                 End If
+                 Call PrintModule.Printer(Sores(1), NameNumField, Sores(2), Sores(3), Sores(4), Sores(5), Sores(6), Sores(7), Sores(8), Sores(9), Sores(10), Sores(11), Sores(12), Sores(13), Sores(14), Sores(15), Pol, "", "", False, Colerist(0), Colerist(1), Colerist(2))
+                'Call PrintModule.Printer(CStr(rs.Fields(23)), NameNumField, CStr(rs.Fields(8)), CStr(rs.Fields(10)), CStr(rs.Fields(27)), CStr(rs.Fields(21)), CStr(rs.Fields(1)), CStr(rs.Fields(2)), CStr(rs.Fields(3)), CStr(rs.Fields(5)), CStr(rs.Fields(6)), CStr(rs.Fields(14)), CStr(rs.Fields(16)), CStr(rs.Fields(11)), CStr(rs.Fields(12)), CStr(rs.Fields(24)), Pol, "", "", True)
+                NameNumField.Visible = False
+                If Int(rs.Fields(19)) > 1 And IzmenStatFlag.Value = True Then
+                    Call UpdateStats(g, Sores(1))
+                End If
+                'Application.Wait Time:=Now + TimeSerial(0, 0, Int(DelayPrint.Value))
+        Else
+            i = MsgBox("Пропуска с таким номером нет", vbCritical)
+        End If
+        PrintSeries.Visible = True
+        RezhimPechati.Visible = True
+        TekZayavkaLabel.Visible = False
+    Else
+        i = MsgBox("Закройте все документы Word, прежде чем начать", vbCritical)
+        Call ReadWriteDebug("Форма:PrintFabric***Процедура:Preview_Click***Знач:")
+    End If
+    'Call PrintModule.Printer(Label_40.Caption, NameNumField, Label_8.Caption, Label_9.Caption, Label_45.Caption, Label_15.Caption, Label_2.Caption, Label_3.Caption, Label_4.Caption, Label_7.Caption, DataField_1.Value, Label_5.Caption, DataField_2.Value, Label_11.Caption, Label_12.Caption, Label_44.Caption, False, "", "")
+End Sub
+Private Sub PrintSeries_Click()
+    Dim Wapp As String
+    Wapp = "Word.Application"
+    If IsAppRunning(Wapp) = False Then
+        Info.SetFocus
+        PrintSeries.Visible = False
+        RezhimPechati.Visible = False
+        TekZayavkaLabel.Visible = True
+        Call GetCapValue
+        If RezhimPechati.Value = True Then
+            Count_1.Visible = True
+            Count_2.Visible = True
+            Count_Y.Visible = True
+            Count_x.Visible = True
+        End If
+        Dim Scolas As String
+        Dim Pol As Boolean
+        Dim Colerist() As Integer
+        Dim g As Integer
+        Dim TipCveta As Boolean
+        g = 8
+        If Left(Label_Start.Caption, 2) = "ПТ" Then
+            If CurrentProject.AllForms("Interface_Zayavok_Otdeleniya").IsLoaded Then
+                g = 6
+                Pol = True
+            Else
+                g = MsgBox("Печать пропусков (да) или заявок(нет)", vbYesNo, "Печать пропусков (да) или заявок(нет)")
+                If g = 7 Then
+                    Pol = False
+                Else
+                    Pol = True
+                End If
+            End If
+        End If
+        If TypeOfOtdeleniya.ListIndex > 0 Or Otd.ListIndex > 0 Then
+            Dim OtdeleniyaCounts() As String
+            OtdeleniyaCounts() = SetOtdeleniyaCounts
+        End If
+        Dim SQL As String
+        Dim Bazha As String
+        Dim Sores(16) As String
+        Dim Zhenya(16) As Integer
+        Call ZapolnenieZheni(Zhenya)
+        Bazha = "*"
+        Dim db As Database
+        Dim rs As DAO.Recordset
+        Set db = DBEngine.Workspaces(0).Databases(0)
+        If RezhimPechati.Value = False Then
+            'SQL = "SELECT " & Bazha & " FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase WHERE Type_Zayavki = " & "'" & Filter_1.Value & "' AND " & "Vyd_Zayavki = " & "'" & Filter_2.Value & "'"
+            'bd = "SELECT TOP " & Text_End.Value & " " & Bazha
+            'SQL = "SELECT TOP " & (Text_End.Value - (Text_Start.Value - 1)) & " " & Bazha & " From (" & Replace(SQL, ("SELECT " & Bazha), bd) + " ORDER BY KEY" & ")" & "ORDER BY KEY DESC"
+            Dim Key1(2) As Integer
+            Dim Maza As Integer
+            SQL = "SELECT [Key] FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase WHERE Numer_Of_Zayavku = '" & Left(Filter_2.Value, 1) & Left(Filter_1.Value, 1) & Text_Start.Value & "' OR Numer_Of_Zayavku = '" & Left(Filter_2.Value, 1) & Left(Filter_1.Value, 1) & Text_End.Value & "'"
+            Set rs = db.OpenRecordset(SQL)
+            Do While (Not rs.EOF)
+                Key1(Maza) = rs.Fields(0)
+                Maza = Maza + 1
+                rs.MoveNext
+            Loop
+            If Maza < 2 Then
+                i = MsgBox("Выберите Диапозон (Начало и Конец) - Существующих в системе пропусков!", vbCritical)
+                PrintSeries.Visible = True
+                RezhimPechati.Visible = True
+                TekZayavkaLabel.Visible = False
+                Count_1.Visible = False
+                Count_2.Visible = False
+                Count_Y.Visible = False
+                Count_x.Visible = False
+                Exit Sub
+            End If
+            SQL = "SELECT * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase WHERE Type_Zayavki = " & "'" & Filter_1.Value & "' AND " & "Vyd_Zayavki = " & "'" & Filter_2.Value & "' AND Key BETWEEN " & Key1(1) & " AND " & Key1(0) & " ORDER BY KEY"
+        Else
+            If IsNull(Comment.Value) Then
+                    SQL = "SELECT * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase WHERE ((Коментарии = '' OR Коментарии IS NULL) AND Type_Zayavki = " & " '" & Filter_1.Value & "' AND " & "Vyd_Zayavki = " & "'" & Filter_2.Value & "')"
+            Else
+                SQL = "SELECT " & Bazha & " FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase WHERE Коментарии = " & "'" & Comment.Value & "' AND Type_Zayavki = " & "'" & Filter_1.Value & "' AND " & "Vyd_Zayavki = " & "'" & Filter_2.Value & "'"
+                bd = "SELECT TOP " & Text_End_2.Value & " " & Bazha
+                SQL = "SELECT TOP " & (Text_End_2.Value - (Text_Start_2.Value - 1)) & " " & Bazha & " From (" & Replace(SQL, ("SELECT " & Bazha), bd) + " ORDER BY KEY" & ")" & "ORDER BY KEY DESC"
+            End If
+        End If
+        ReDim Colerist(3) As Integer
+        Set rs = db.OpenRecordset(SQL)
+        If TypePechati.ListIndex = 1 Then
+            Colerist(0) = 0
+            Colerist(1) = 0
+            Colerist(2) = 0
+        Else
+            Colerist(0) = -1
+            Colerist(1) = 0
+            Colerist(2) = 0
+        End If
+        rs.MoveFirst
+        Do While (Not rs.EOF)
+            If TypeOfOtdeleniya.ListIndex > 0 Or Otd.ListIndex > 0 Then
+                TipCveta = False
+                For i = 0 To UBound(OtdeleniyaCounts) - 1
+                    If OtdeleniyaCounts(i) = rs.Fields(14) Then TipCveta = True
+                Next i
+            Else
+                TipCveta = True
+            End If
+            If (Int(rs.Fields(19)) > 1 Or OnlySoglas.Value = False) And TipCveta = True Then
+                For i = 0 To 15
+                    If IsNull(rs.Fields(Zhenya(i))) Then
+                        Sores(i) = " "
+                    Else
+                        Sores(i) = rs.Fields(Zhenya(i))
+                    End If
+                Next i
+                TekZayavkaLabel.Caption = "Печатается: " & Sores(1)
+                If CBool(rs.Fields(25)) = True Then
+                    NameNumField.Visible = True
+                    Call LoadImyaNomerTelTabel(Sores(2), Sores(3), Sores(4), Sores(0), NameNumField)
+                End If
+                If Pol = True And Colerist(0) > -1 Then
+                    Colerist = GetColor(Sores(11))
+                End If
+                If CBool(rs.Fields(25)) = False Then
+                    Call PrintModule.Printer(Sores(1), NameNumField, Sores(2), Sores(3), Sores(4), Sores(5), Sores(6), Sores(7), Sores(8), Sores(9), Sores(10), Sores(11), Sores(12), Sores(13), Sores(14), Sores(15), Pol, "", "", True, Colerist(0), Colerist(1), Colerist(2))
+                Else
+                    For i = 0 To NameNumField.ListCount - 1
+                        If NameNumField.Column(0, i) = "В" Then Call PrintModule.Printer(Sores(1), NameNumField, NameNumField.Column(1, i), NameNumField.Column(3, i), NameNumField.Column(2, i), Sores(5), Sores(6), Sores(7), Sores(8), Sores(9), Sores(10), Sores(11), Sores(12), Sores(13), Sores(14), Sores(15), Pol, "", "", True, Colerist(0), Colerist(1), Colerist(2))
+                    Next i
+                End If
+                'Call PrintModule.Printer(CStr(rs.Fields(23)), NameNumField, CStr(rs.Fields(8)), CStr(rs.Fields(10)), CStr(rs.Fields(27)), CStr(rs.Fields(21)), CStr(rs.Fields(1)), CStr(rs.Fields(2)), CStr(rs.Fields(3)), CStr(rs.Fields(5)), CStr(rs.Fields(6)), CStr(rs.Fields(14)), CStr(rs.Fields(16)), CStr(rs.Fields(11)), CStr(rs.Fields(12)), CStr(rs.Fields(24)), Pol, "", "", True)
+                NameNumField.Visible = False
+                Call DelayTime(DelayPrint.Value)
+                'Set wsh = VBA.CreateObject("WScript.Shell")
+                'Dim waitOnReturn As Boolean: waitOnReturn = True
+                'Dim windowStyle As Integer: windowStyle = 0
+                'Dim errorCode As Integer
+                'errorCode = wsh.Run("C:" & vbNewLine & "timeout " & DelayPrint.Value, windowStyle, waitOnReturn)
+                If Int(rs.Fields(19)) > 1 Then
+                    Call UpdateStats(g, Sores(1))
+                End If
+                'Application.Wait Time:=Now + TimeSerial(0, 0, Int(DelayPrint.Value))
+            Else
+                'Scolas = Scolas & rs.Fields(23) & ","
+            End If
+            rs.MoveNext
+            Count_1.Caption = Int(Int(Count_1.Caption) + 1)
+        Loop
+        PrintSeries.Visible = True
+        RezhimPechati.Visible = True
+        TekZayavkaLabel.Visible = False
+        Count_1.Visible = False
+        Count_2.Visible = False
+        Count_Y.Visible = False
+        Count_x.Visible = False
+        Call GetCapValue
+        'If Len(Scolas) > 0 Then i = MsgBox("Ненапечатанны: " & Left(Scolas, Len(Scolas) - 1), vbInformation)
+    Else
+        i = MsgBox("Закройте все документы Word, прежде чем начать", vbCritical)
+        Call ReadWriteDebug("Форма:PrintFabric***Процедура:PrintSeries_Click***Знач:Конец работы")
+    End If
+    'Call PrintModule.Printer(Label_40.Caption, NameNumField, Label_8.Caption, Label_9.Caption, Label_45.Caption, Label_15.Caption, Label_2.Caption, Label_3.Caption, Label_4.Caption, Label_7.Caption, DataField_1.Value, Label_5.Caption, DataField_2.Value, Label_11.Caption, Label_12.Caption, Label_44.Caption, False, "", "")
+End Sub
+Private Function SetOtdeleniyaCounts() As String()
+    Dim OtdCount() As String
+    Dim SQL As String
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    If Otd.ListIndex = 0 Then
+        SQL = "SELECT COUNT(*) From [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya WHERE Color = " & Int(TypeOfOtdeleniya.ListIndex)
+        Set rs = db.OpenRecordset(SQL)
+        ReDim OtdCount(Int(rs.Fields(0)))
+    Else
+        ReDim OtdCount(1)
+    End If
+    If Otd.ListIndex = 0 Then
+    SQL = "SELECT [otd],[Color] From [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya WHERE Color = " & Int(TypeOfOtdeleniya.ListIndex)
+    Dim IndexOtd As Integer
+    IndexOtd = 0
+    Set rs = db.OpenRecordset(SQL)
+    Do While (Not rs.EOF)
+       OtdCount(IndexOtd) = rs.Fields(0)
+       IndexOtd = IndexOtd + 1
+       rs.MoveNext
+    Loop
+    Else
+        OtdCount(0) = Otd.Value
+    End If
+    SetOtdeleniyaCounts = OtdCount
+End Function
+Public Function DelayTime(NumberOfSeconds As Variant)
+    On Error GoTo Error_GoTo
+    Dim PauseTime As Variant
+    Dim Start As Variant
+    Dim Elapsed As Variant
+    PauseTime = NumberOfSeconds
+    Start = Timer
+    Elapsed = 0
+    Do While Timer < Start + PauseTime
+        Elapsed = Elapsed + 1
+        If Timer = 0 Then
+            ' Crossing midnight
+            PauseTime = PauseTime - Elapsed
+            Start = 0
+            Elapsed = 0
+        End If
+        DoEvents
+    Loop
+Exit_GoTo:
+    On Error GoTo 0
+    Exit Function
+Error_GoTo:
+    'Debug.Print Err.Number, Err.Description, Erl
+    GoTo Exit_GoTo
+End Function
+Private Sub UpdateStats(ByRef ZVKperem As Integer, ByRef TypesProp As String)
+    Dim PeremenSogly As Integer
+    Dim StateSogly As String
+    On Error GoTo EptHandler:
+    If ZVKperem = 8 Then
+        If Left(TypesProp, 2) = "РП" Or Left(TypesProp, 2) = "ВП" Then
+            PeremenSogly = 3
+            StateSogly = "прп. напечатан"
+        Else
+            PeremenSogly = 4
+            StateSogly = "зв-ка напечатана"
+        End If
+    ElseIf ZVKperem = 7 Then
+        PeremenSogly = 4
+        StateSogly = "зв-ка напечатана"
+    Else
+        PeremenSogly = 3
+        StateSogly = "прп. напечатан"
+    End If
+    Dim SQL As String
+    SQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase SET Soglosovanie = " & PeremenSogly & ", State = '" & StateSogly & "' WHERE Numer_Of_Zayavku = " & "'" & TypesProp & "';"
+    CurrentDb.Execute SQL
+    Exit Sub
+EptHandler:
+    Call ReadWriteLog(Err.Description, "UpdateStats(PrintFabric)")
+End Sub
+Private Sub GetCapValue()
+    If RezhimPechati.Value = False Then
+        Count_2.Caption = Text_End.Value
+        Count_1.Caption = Text_Start.Value
+    Else
+        Count_2.Caption = Text_End_2.Value
+        Count_1.Caption = Text_Start_2.Value
+    End If
+End Sub
+Private Sub ZapolnenieZheni(ByRef Zhenya() As Integer)
+    Zhenya(0) = 30
+    Zhenya(1) = 23
+    Zhenya(2) = 8
+    Zhenya(3) = 10
+    Zhenya(4) = 27
+    Zhenya(5) = 7
+    Zhenya(6) = 1
+    Zhenya(7) = 2
+    Zhenya(8) = 3
+    Zhenya(9) = 5
+    Zhenya(10) = 6
+    Zhenya(11) = 14
+    Zhenya(12) = 16
+    Zhenya(13) = 11
+    Zhenya(14) = 12
+    Zhenya(15) = 24
+End Sub
+Private Sub RezhimPechati_Click()
+    If RezhimPechati.Value = True Then
+        Text_Start.Visible = False
+        Text_Start.Enabled = False
+        Text_End.Visible = False
+        Text_End.Enabled = False
+        InfoLabel.Caption = "Комментарий:"
+        RezhimPechati.Caption = "Печать по Комментарию"
+        InfoMin.Visible = False
+        MinValue.Visible = False
+        InfoMax.Caption = "Число пропусков:"
+        Comment.Enabled = True
+        Comment.Visible = True
+        Call UpdateDan
+    Else
+        Text_Start.Visible = True
+        Text_Start.Enabled = True
+        Text_End.Visible = True
+        Text_End.Enabled = True
+        Text_Start_2.Enabled = False
+        Text_Start_2.Visible = False
+        Text_End_2.Enabled = False
+        Text_End_2.Visible = False
+        LineDip_2.Visible = False
+        Diap_2.Visible = False
+        InfoLabel.Caption = "Диапозон печати:"
+        RezhimPechati.Caption = "Печать по Диапозону"
+        InfoMin.Visible = True
+        MinValue.Visible = True
+        InfoMax.Caption = "Максимальное Знач.:"
+        Comment.Enabled = False
+        Comment.Visible = False
+        Call UpdateDan
+    End If
+    Call ReadWriteDebug("Форма:PrintFabric***Процедура:RezhimPechati_Click***Знач:" & RezhimPechati.Value)
+End Sub
+Private Function GetSQLCOnveera() As String
+    On Error GoTo Error:
+    If RezhimPechati.Value = False Then
+        GetSQLCOnveera = "SELECT [Numer_Of_Zayavku] FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase WHERE Type_Zayavki = " & "'" & Filter_1.Value & "' AND " & "Vyd_Zayavki = " & "'" & Filter_2.Value & "'" & " ORDER BY KEY"
+    Else
+        If IsNull(Comment.Value) Then
+            GetSQLCOnveera = "SELECT COUNT(*) FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase WHERE ((Коментарии = '' OR Коментарии IS NULL) AND Type_Zayavki = " & " '" & Filter_1.Value & "' AND " & "Vyd_Zayavki = " & "'" & Filter_2.Value & "')"
+        Else
+            GetSQLCOnveera = "SELECT COUNT(*) FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase WHERE Коментарии = " & "'" & Comment.Value & "' AND Type_Zayavki = " & " '" & Filter_1.Value & "' AND " & "Vyd_Zayavki = " & "'" & Filter_2.Value & "'"
+        End If
+    End If
+    Call ReadWriteDebug("Форма:PrintFabric***Функция:GetSQLCOnveera***Знач:")
+    Exit Function
+Error:
+    i = MsgBox(Err.Description, vbCritical)
+    Call ReadWriteLog(Err.Description, "GetSQLCOnveera(PrintFabric)")
+End Function
+Private Sub Text_End_2_AfterUpdate()
+    If IsNull(Text_End_2.Value) Or Text_End_2.Value = "" Or Int(Text_End_2.Value) > Int(MaxValue.Caption) Or Int(Text_End_2.Value) < Int(Text_Start_2.Value) Then
+        Text_End_2.Value = MaxValue.Caption
+        i = MsgBox("Ошибка ввода. Поле не должно быть пустым. Верхняя граница не может быть больше максимального значения и меньше нижней границы", vbCritical)
+    End If
+    Call ReadWriteDebug("Форма:PrintFabric***Процедура:Text_End_2_AfterUpdate***Знач:" & Text_End_2.Value)
+End Sub
+Private Sub Text_End_AfterUpdate()
+    Dim paka As Integer
+    paka = Int(Mid(MaxValue.Caption, 3))
+    If Not IsNull(Text_End.Value) Then
+        If Int(Text_End.Value) > Int(Mid(MaxValue.Caption, 3)) Then
+            i = MsgBox("Слишком большое значение! Заявки с таким номером еще не существует!", vbCritical)
+            Text_End.Value = Mid(MaxValue.Caption, 3)
+        ElseIf Int(Text_End.Value) < Int(Mid(MinValue.Caption, 3)) Then
+            i = MsgBox("Меньше минимального значения!", vbCritical)
+            Text_End.Value = Mid(MaxValue.Caption, 3)
+        ElseIf Int(Text_End.Value) < Int(Text_Start.Value) Then
+            i = MsgBox("Меньше нижней границы диапозона!", vbCritical)
+            Text_End.Value = Mid(MaxValue.Caption, 3)
+        End If
+    Else
+        Text_End.Value = Mid(MaxValue.Caption, 3)
+    End If
+    Call ReadWriteDebug("Форма:PrintFabric***Процедура:Text_End_AfterUpdate***Знач: " & Text_End.Value)
+End Sub
+Private Sub Text_Start_2_AfterUpdate()
+    If IsNull(Text_Start_2.Value) Or Text_Start_2.Value = "" Or Int(Text_Start_2.Value) < 1 Or Int(Text_Start_2.Value) > Int(Text_End_2.Value) Then
+        Text_Start_2.Value = 1
+        i = MsgBox("Ошибка ввода. Поле не должно быть пустым.Нижняя граница не может быть меньше 1 или больше заданной верхней границы", vbCritical)
+    End If
+    Preview.Caption = "Предпросмотр пропуска с номером: " & Text_Start_2.Value
+    Count_1.Caption = Text_Start_2.Value
+    Call ReadWriteDebug("Форма:PrintFabric***Процедура:Text_Start_2_AfterUpdate***Знач: " & Text_Start_2.Value)
+End Sub
+Private Sub Text_Start_AfterUpdate()
+    If Not IsNull(Text_Start.Value) Then
+        If Int(Text_Start.Value) > Int(Mid(MaxValue.Caption, 3)) Then
+            i = MsgBox("Нижняя граница диапозона не может быть больше максимального значения", vbCritical)
+            Text_Start.Value = Mid(MinValue.Caption, 3)
+        ElseIf Int(Text_Start.Value) < Int(Mid(MinValue.Caption, 3)) Then
+            i = MsgBox("Меньше нижней границы диапозона!", vbCritical)
+            Text_Start.Value = Mid(MinValue.Caption, 3)
+        ElseIf Int(Text_End.Value) < Int(Text_Start.Value) Then
+            i = MsgBox("Нижняя граница диапозона не может быть больше верхней!", vbCritical)
+            Text_Start.Value = Mid(MinValue.Caption, 3)
+        End If
+    Else
+        Text_Start.Value = Mid(MinValue.Caption, 3)
+    End If
+    Preview.Caption = "Предпросмотр пропуска с номером: " & Text_Start.Value
+    Call ReadWriteDebug("Форма:PrintFabric***Процедура:Text_Start_AfterUpdate***Знач: " & Text_Start.Value)
+End Sub
+Private Sub TypeOfOtdeleniya_AfterUpdate()
+    Call LoadOtd(Otd, TypeOfOtdeleniya.ListIndex)
+    Otd.AddItem "Все", 0
+    Otd.Value = Otd.ItemData(0)
+End Sub

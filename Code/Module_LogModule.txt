@@ -1,0 +1,57 @@
+Option Compare Database
+Public Sub ReadWriteLog(ByRef Descrp As String, ByRef Location As String)
+    On Error GoTo ErB:
+    If CheckState("LogState") = True Then
+        Set fso = CreateObject("scripting.filesystemobject")
+        Set ts = fso.OpenTextFile("V:\TEEEEST_log\LogFile.txt", 8, True)
+        Dim TextDesrp As String
+        TextDesrp = Date & "***" & Time() & "***" & Environ$("computername") & "***" & Descrp & "***" & Location
+        ts.WriteLine TextDesrp
+        Set ts = Nothing: Set fso = Nothing
+        AddIntoTXTfile = Err = 0
+    End If
+ErB:
+    'MsgBox Err.Description
+End Sub
+Public Sub ReadWriteDebug(ByRef Descrp As String)
+    On Error GoTo ErB:
+    If CheckState("Debug_State") = True Then
+        Dim DebugDate As Date
+        Dim fso As Object
+        Dim ts As Object
+        Set fso = CreateObject("scripting.filesystemobject")
+        Set ts = fso.GetFile("V:\TEEEEST_log\DebugFile.txt")
+        DebugDate = CDate(Format$(ts.DateLastModified, "dd\/mm\/yyyy"))
+        If DebugDate <> Date Then
+            Call ArchiveDebug(fso, ts)
+        End If
+        Set ts = fso.OpenTextFile("V:\TEEEEST_log\DebugFile.txt", 8, True)
+        Dim TextDesrp As String
+        TextDesrp = Date & "***" & Time() & "***" & Environ$("computername") & "***" & Descrp
+        ts.WriteLine TextDesrp
+        Set ts = Nothing: Set fso = Nothing
+        AddIntoTXTfile = Err = 0
+    End If
+    Form_Vhod.TimerCount.Caption = "0"
+ErB:
+    'MsgBox Err.Description
+End Sub
+Private Sub ArchiveDebug(ByRef fso As Object, ByRef ts As Object)
+    Set fs2 = CreateObject("Scripting.FileSystemObject")
+    Dim PathDebug As String
+    PathDebug = Replace("V:\TEEEEST_log\Debugs\Debug" & Format$(Date - 1, "yyyy\/mm\/dd") & ".txt", "/", "")
+    'Set fs3 = fs2.CreateTextFile(PathDebug, True)
+    fso.MoveFile Source:="V:\TEEEEST_log\DebugFile.txt", Destination:=PathDebug
+    'Open "V:\TEEEEST_log\DebugFile.txt" For Output As fs3
+    'Kill ts
+    Set ts = fso.CreateTextFile("V:\TEEEEST_log\DebugFile.txt", True)
+    Set ts = Nothing
+End Sub
+Private Function CheckState(ByRef What As String) As Boolean
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    SQLstr = "SELECT [" & What & "] From TableTheSystem2"
+    Set rs = db.OpenRecordset(SQLstr)
+    CheckState = CBool(rs.Fields(0))
+End Function

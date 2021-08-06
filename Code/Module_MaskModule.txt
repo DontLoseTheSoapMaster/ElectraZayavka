@@ -1,0 +1,9 @@
+Option Compare Database
+Public Sub ChangeMask(ObjT As Object, ObjStr As String)
+    If ObjStr = "Другой" Then
+        ObjT.InputMask = "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+    Else
+        ObjT.InputMask = "0000 000000"
+    End If
+    'Call ReadWriteDebug("Модуль:MaskModule***Процедура:ChangeMask, Объект: " & ObjT.Name & "***Знач: " & ObjStr)
+End Sub

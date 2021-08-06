@@ -1,0 +1,36 @@
+Option Compare Database
+Private Sub Form_Timer()
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Dim CurrentNum As Integer
+    SQL = "SELECT [CanBeOpened] FROM TableTheSystem2"
+    Set rs = db.OpenRecordset(SQL)
+    Dim vo As Boolean
+    vo = False
+    If Time > TimeValue("05:00:00") And Time < TimeValue("05:06:00") Then vo = True
+    Profilactica.Value = vo
+    If (rs.Fields(0) = False And Forms![Vhod].Controls![SystemLabel_2].Caption = False) Or vo = True Then
+        Call ReadWriteDebug("Форма:TimeZoneForm***Процедура:Form_Timer***Знач: Инициация Закрытия")
+        DoCmd.OpenForm "frmClock", , , , , acDialog
+        'get out
+        Application.Quit
+    ElseIf Screen.ActiveForm.Name <> Forms("Vhod").Name Then
+        If Pfizer.Caption = "0" Then
+            SQL = "SELECT [AllowOpen] FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya WHERE otd = '" & Form_Vhod.Label_Otd.Caption & "'"
+            Set rs = db.OpenRecordset(SQL)
+            If rs.Fields(0) = False Then
+                Pfizer.Caption = "1"
+                DoCmd.OpenForm "OtdTechnical", , , , , acIcon
+            End If
+        Else
+            On Error Resume Next:
+            DoCmd.Close acForm, "Interface_Soglosovaniya"
+            DoCmd.Close acForm, "Interface_Soglosovaniya (Kadry)"
+            DoCmd.Close acForm, "Interface_Zayavok_Otdeleniya"
+            DoCmd.Close acForm, "OtdTechnical"
+            DoCmd.OpenForm "Vhod"
+            Pfizer.Caption = "0"
+        End If
+    End If
+End Sub

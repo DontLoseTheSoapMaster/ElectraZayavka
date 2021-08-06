@@ -1,0 +1,436 @@
+Option Compare Database
+Public Sub Printer(Propusk As String, Spisok As Object, FIOChela As String, PaspChela As String, ContChela As String, CelChela As String, FnameIni As String, LnameIni As String, OnameIni As String, TelIniziator As String, Datata As String, Otd As String, Datata_2 As String, NameAuto As String, NamerAuto As String, Gruz As String, AutoPrtint As Boolean, Corpus As String, Floor As String, ByRef GoGO As Boolean, ByRef Red As Integer, ByRef Green As Integer, ByRef Blue As Integer)
+   Const msoFileDialogFilePicker As Long = 3
+   Dim fd As Object
+   Dim file As Variant
+   Set fd = Application.FileDialog(msoFileDialogFilePicker)
+   Dim strSQL As String
+   Dim WordApOb As Object
+   Dim WordOb As Object
+   Dim Path As String
+   Dim OtdCoordinates As String
+   If AutoPrtint = False Or (AutoPrtint = True And Spisok.Name = "NameNumField") Then
+    OtdCoordinates = WhatOtdCoordinates(Otd)
+   Else
+    If Corpus <> "" And Floor <> "" Then
+        OtdCoordinates = Otd & " Корпус - " & Corpus & " Этаж - " & Floor
+    Else
+        OtdCoordinates = Otd
+    End If
+   End If
+   Set rsd = New ADODB.Recordset
+  'FD.Filters.Clear
+  ' FD.Filters.Add "Word", "*.dotx"'
+  ' FD.FilterIndex = 1'
+  ' If FD.Show = False Then'
+  '   Set dlgFile = Nothing'
+  '   Exit Sub'
+  ' End If'
+  'path = Trim(FD.SelectedItems(1)) '
+  Path = CurrentProject.Path
+  Dim EstCel As Boolean
+  Dim WhSheblon As Boolean
+  EstCel = True
+  Select Case Left(Propusk, 2)
+       Case "РП"
+            If FIOChela = "<См. Таблицу>" Then
+                Path = Path & "\Cheblons\Cheblon.dotx"
+                WhSheblon = False
+            Else
+                Path = Path & "\Cheblons\Cheblon_7.dotx"
+                WhSheblon = True
+                EstCel = False
+            End If
+        Case "ВП"
+            If FIOChela = "<См. Таблицу>" Then
+                Path = Path & "\Cheblons\Cheblon_2.dotx"
+                WhSheblon = False
+            Else
+                Path = Path & "\Cheblons\Cheblon_8.dotx"
+                EstCel = False
+                WhSheblon = True
+            End If
+        Case "РТ"
+            Path = Path & "\Cheblons\Cheblon_3.dotx"
+        Case "ВТ"
+            Path = Path & "\Cheblons\Cheblon_4.dotx"
+        Case "ПП"
+            Path = Path & "\Cheblons\Cheblon_5.dotx"
+        Case "ПТ"
+            If AutoPrtint = False Then
+                Path = Path & "\Cheblons\Cheblon_6.dotx"
+            Else
+                If Red > -1 Then
+                    Path = Path & "\Cheblons\Cheblon_9_5.dotx"
+                Else
+                    Path = Path & "\Cheblons\Cheblon_9_6.dotx"
+                End If
+                EstCel = False
+            End If
+        Case "МI", "МO"
+            EstCel = False
+            Path = Path & "\Cheblons\Cheblon_10.dotx"
+   End Select
+   Set fd = Nothing
+   If Path <> "" Then
+     On Error GoTo ErrorHandler
+        Set WordOb = CreateObject("Word.document")
+        Set WordOb = GetObject(Path)
+        Set WordApOb = WordOb.Parent
+        WordApOb.Visible = True
+        If FIOChela = "<См. Таблицу>" Then
+            Dim ColVoV As Integer
+            For i = 0 To Spisok.ListCount - 1
+                If Spisok.Column(0, i) = "В" Then ColVoV = ColVoV + 1
+            Next i
+            If ColVoV < 20 Then
+                WordOb.Tables(1).Cell(2, 1).Split NumRows:=ColVoV, NumColumns:=1
+                WordOb.Tables(1).Cell(2, 2).Split NumRows:=ColVoV, NumColumns:=1
+                WordOb.Tables(1).Cell(2, 3).Split NumRows:=ColVoV, NumColumns:=1
+                WordOb.Tables(1).Cell(2, 4).Split NumRows:=ColVoV, NumColumns:=1
+            Else
+                For i = 0 To ColVoV - 2
+                    WordOb.Tables(1).Cell(i + 2, 1).Split NumRows:=2, NumColumns:=1
+                    WordOb.Tables(1).Cell(i + 2, 2).Split NumRows:=2, NumColumns:=1
+                    WordOb.Tables(1).Cell(i + 2, 3).Split NumRows:=2, NumColumns:=1
+                    WordOb.Tables(1).Cell(i + 2, 4).Split NumRows:=2, NumColumns:=1
+                Next i
+            End If
+            ColVoV = 1
+            For i = 0 To Spisok.ListCount - 1
+                If Spisok.Column(0, i) = "В" Then
+                    WordOb.Tables(1).Cell(ColVoV + 1, 1) = CStr(ColVoV)
+                    WordOb.Tables(1).Cell(ColVoV + 1, 2) = CStr(Spisok.Column(1, i))
+                    WordOb.Tables(1).Cell(ColVoV + 1, 3) = CStr(Spisok.Column(2, i))
+                    WordOb.Tables(1).Cell(ColVoV + 1, 4) = CStr(Spisok.Column(3, i))
+                    ColVoV = ColVoV + 1
+                End If
+            Next i
+        Else
+            If EstCel = True Then
+                WordOb.Tables(1).Cell(i + 2, 1) = "1"
+                WordOb.Tables(1).Cell(2, 2) = FIOChela
+                WordOb.Tables(1).Cell(2, 3) = PaspChela
+                WordOb.Tables(1).Cell(2, 4) = ContChela
+            End If
+        End If
+        If Left(Propusk, 1) <> "П" Then
+            If EstCel = True Or Left(Propusk, 1) = "М" Then
+                WordOb.Bookmarks("CelChela").Select
+                WordApOb.selection.TypeText Text:=Nz(CelChela, " ")
+            End If
+        End If
+        WordOb.Bookmarks("Iniciator").Select
+        Dim Ini As String
+        If EstCel = True Then
+            Ini = FnameIni & " " & LnameIni & " " & OnameIni
+        ElseIf Left(Propusk, 2) <> "ПТ" Or (Left(Propusk, 2) = "ПТ" And AutoPrtint = False) Then
+            Ini = FIOChela
+        Else
+            Dim Ca() As String
+            Ca = Split(FIOChela, , 2)
+            If UBound(Ca) > 0 Then Ini = Ca(0) & " " & Ca(1) Else Ini = Ca(0) & " "
+            If Left(Propusk, 2) = "ПТ" And AutoPrtint = True Then
+                Dim db As Database
+                Dim rs As DAO.Recordset
+                Dim SQL As String
+                SQL = "SELECT [ShortName],[Telephone] FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya WHERE otd = " & "'" & Otd & "';"
+                Set db = DBEngine.Workspaces(0).Databases(0)
+                Set rs = db.OpenRecordset(SQL)
+                OtdCoordinates = rs.Fields(0)
+                NamerAuto = CheckAuto(NamerAuto)
+                If Not IsNull(rs.Fields(1)) Then
+                    ContChela = "Тел: " & rs.Fields(1)
+                Else
+                    ContChela = " "
+                End If
+                If Red > -1 Then
+                    Dim GetRgb(3) As Integer
+                    GetRgb(0) = Red
+                    GetRgb(1) = Green
+                    GetRgb(2) = Blue
+                    WordOb.Shapes(1).Fill.ForeColor.RGB = RGB(GetRgb(0), GetRgb(1), GetRgb(2))
+                    WordOb.Shapes(1).Fill.BackColor.RGB = RGB(GetRgb(0), GetRgb(1), GetRgb(2))
+                End If
+                'WordOb.Shapes(2).Height = 428
+                'WordOb.Shapes(2).Width = 535
+                'WordApOb.Shapes(1).Fill.TwoColorGradient msoGradientHorizontal, 1
+            End If
+        End If
+        WordApOb.selection.TypeText Text:=Nz(Ini, " ")
+        WordOb.Bookmarks("TelIniziator").Select
+        Dim qw As Integer
+        qw = Spisok.ListCount
+        If (Left(Propusk, 2) = "РП" Or Left(Propusk, 2) = "ВП") And WhSheblon = True Then
+            WordApOb.selection.TypeText Text:=Nz(CStr(Format(Time(), "hh:mm")), " ")
+        Else
+            If AutoPrtint = True And Left(Propusk, 2) = "ПТ" Then
+                WordApOb.selection.TypeText Text:=Nz(ContChela, " ")
+            Else
+                WordApOb.selection.TypeText Text:=Nz(TelIniziator, " ")
+            End If
+        End If
+        'WordApOb.Selection.TypeText Text:=Nz(TelIniziator, " ")
+        If Left(Propusk, 2) <> "ПТ" Or (Left(Propusk, 2) = "ПТ" And AutoPrtint = False) Then
+            WordOb.Bookmarks("Datata").Select
+            WordApOb.selection.TypeText Text:=Nz(CStr(Datata), " ")
+            WordOb.Bookmarks("NumerZav").Select
+            If Left(Propusk, 1) = "М" Then
+                WordApOb.selection.TypeText Text:=Nz(Propusk, " ")
+            Else
+                WordApOb.selection.TypeText Text:=Nz(Mid(Propusk, 3), " ")
+            End If
+        Else
+            If Red > -1 Then
+                WordOb.Bookmarks("Datata").Select
+                WordApOb.selection.Font.Color = RGB(GetRgb(0), GetRgb(1), GetRgb(2))
+                WordApOb.selection.TypeText Text:=Nz(Right(CStr(Datata), 4), " ")
+            End If
+            WordOb.Bookmarks("NumerZav").Select
+            WordApOb.selection.TypeText Text:=Nz("ПРОПУСК №" & Mid(Propusk, 3), " ")
+            End If
+        WordOb.Bookmarks("Otd").Select
+        WordApOb.selection.TypeText Text:=Nz(CStr(OtdCoordinates), " ")
+        'WordApOb.Selection.TypeText Text:=Nz(CStr(OtdCoordinates) & vbNewLine & Corpus, " ")
+        If Left(Propusk, 1) = "В" Then
+            WordOb.Bookmarks("Datata_2").Select
+            WordApOb.selection.TypeText Text:=Nz(" " & CStr(Datata_2), " ")
+        End If
+        If Mid(Propusk, 2, 1) = "Т" Or Left(Propusk, 1) = "М" Then
+            If Left(Propusk, 1) = "М" Then
+                WordOb.Bookmarks("FIO_Chuvaka").Select
+                WordApOb.selection.TypeText Text:=Nz(FIOChela, " ")
+                WordOb.Bookmarks("Tel_Chuvaka").Select
+                WordApOb.selection.TypeText Text:=Nz(ContChela, " ")
+            End If
+            WordOb.Bookmarks("NameAuto").Select
+            WordApOb.selection.TypeText Text:=Nz(CStr(NameAuto), " ")
+            WordOb.Bookmarks("NamerAuto").Select
+            WordApOb.selection.TypeText Text:=Nz(UCase(CStr(NamerAuto)), " ")
+            If Left(Propusk, 1) <> "П" Then
+                Dim Gruze As String
+                If Gruz = "<Пусто>" Then Gruze = " " Else Gruze = Gruz
+                WordOb.Bookmarks("Gruz").Select
+                WordApOb.selection.TypeText Text:=Nz(Gruze, " ")
+            End If
+        End If
+        If Left(Propusk, 1) = "М" Then
+            WordOb.Bookmarks("TypePeremesh").Select
+            If Left(Propusk, 2) = "МI" Then
+                WordApOb.selection.TypeText Text:=Nz("Ввоз(внос)", " ")
+            Else
+                WordApOb.selection.TypeText Text:=Nz("Вывоз(вынос)", " ")
+            End If
+            ColVoV = Spisok.ListCount
+            If ColVoV < 15 Then
+                WordOb.Tables(2).Cell(2, 1).Split NumRows:=ColVoV, NumColumns:=1
+                WordOb.Tables(2).Cell(2, 2).Split NumRows:=ColVoV, NumColumns:=1
+                WordOb.Tables(2).Cell(2, 3).Split NumRows:=ColVoV, NumColumns:=1
+                WordOb.Tables(2).Cell(2, 4).Split NumRows:=ColVoV, NumColumns:=1
+            Else
+                For i = 0 To ColVoV - 2
+                    WordOb.Tables(2).Cell(i + 2, 1).Split NumRows:=2, NumColumns:=1
+                    WordOb.Tables(2).Cell(i + 2, 2).Split NumRows:=2, NumColumns:=1
+                    WordOb.Tables(2).Cell(i + 2, 3).Split NumRows:=2, NumColumns:=1
+                    WordOb.Tables(2).Cell(i + 2, 4).Split NumRows:=2, NumColumns:=1
+                Next i
+            End If
+            ColVoV = 1
+            For i = 0 To Spisok.ListCount - 1
+                WordOb.Tables(2).Cell(ColVoV + 1, 1) = CStr(ColVoV)
+                WordOb.Tables(2).Cell(ColVoV + 1, 2) = CStr(Spisok.Column(1, i))
+                WordOb.Tables(2).Cell(ColVoV + 1, 3) = CStr(Spisok.Column(2, i))
+                WordOb.Tables(2).Cell(ColVoV + 1, 4) = CStr(Spisok.Column(3, i))
+                ColVoV = ColVoV + 1
+            Next i
+            WordOb.Sections(1).Footers(1).Range.ContentControls(1).Range.Text = Datata
+            WordOb.Sections(1).Footers(1).Range.ContentControls(2).Range.Text = Propusk
+        End If
+        'WordApOb.Selection.WholeStory
+        'WordApOb.Selection.Copy
+        'Dim objWrdApp1 As Object
+        'Dim objWrdDoc1 As Object
+        On Error Resume Next
+        'Set objWrdApp1 = GetObject("Word.Application")
+        'If objWrdApp1 Is Nothing Then
+        '    Set objWrdApp1 = CreateObject("Word.Application")
+        '   Set objWrdDoc1 = objWrdApp1.Documents.Add
+        '    objWrdApp1.Visible = True
+        'Else
+        '    Set objWrdDoc1 = objWrdApp1.Documents.Add
+        '   Set objWrdDoc1 = Nothing
+        '    Set objWrdApp1 = Nothing
+        'End If
+        'objWrdApp1.Selection.PasteAndFormat (wdFormatOriginalFormatting)
+        'WordApOb.Quit SaveChanges:=wdDoNotSaveChanges
+       If (AutoPrtint = False Or Left(Propusk, 2) = "ПТ" Or Left(Propusk, 1) = "М") And GoGO = False Then
+            objWrdApp1.Activate
+        Else
+            'WordApOb.Activate
+           ' Dim bPrintBackgroud As Boolean
+            'Save current setting of background printing
+            'bPrintBackgroud = Options.PrintBackground
+            'Options.PrintBackground = False
+            'Turn off DisplayAlerts
+            'WordApOb.DisplayAlerts = wdAlertsNone
+            'WordApOb.Dialogs(wdDialogFilePrint).Show
+            'Turn on DisplayAlerts again
+            'Application.DisplayAlerts = wdAlertsAll
+            'Set original background printing setting
+            'Options.PrintBackground = bPrintBackgroud
+        WordApOb.PrintOut Background:=False
+            'WordApOb.PrintOut
+            WordOb.Close False
+            WordApOb.Quit SaveChanges:=wdDoNotSaveChanges
+        End If
+        Set WordOb = Nothing
+        Set WordApOb = Nothing
+        Call ReadWriteDebug("Модуль:PrintModule***Процедура:Printer***Знач: Печать/Вывод в ворд:" & Propusk)
+        'Set objWrdDoc1 = Nothing
+        'Set objWrdApp1 = Nothing
+        Exit Sub
+   End If
+ErrorHandler:
+     Call ReadWriteLog(Err.Description, "Printer(PrintModule)")
+     MsgBox Err.Description
+     Set WordOb = Nothing
+     Set WordApOb = Nothing
+End Sub
+Public Sub PrintCheblon(ByRef Red As Integer, ByRef Green As Integer, ByRef Blue As Integer, ByRef YearT As String)
+   Const msoFileDialogFilePicker As Long = 3
+   Dim fd As Object
+   Dim file As Variant
+   Set fd = Application.FileDialog(msoFileDialogFilePicker)
+   Dim strSQL As String
+   Dim WordApOb As Object
+   Dim WordOb As Object
+   Dim Path As String
+   Path = CurrentProject.Path
+   Path = Path & "\Cheblons\Cheblon_9_5.dotx"
+   Set fd = Nothing
+   Set WordOb = CreateObject("Word.document")
+   Set WordOb = GetObject(Path)
+   Set WordApOb = WordOb.Parent
+   WordApOb.Visible = True
+   Dim GetRgb(3) As Integer
+   GetRgb(0) = Red
+   GetRgb(1) = Green
+   GetRgb(2) = Blue
+   WordOb.Shapes(1).Fill.ForeColor.RGB = RGB(GetRgb(0), GetRgb(1), GetRgb(2))
+   WordOb.Shapes(1).Fill.BackColor.RGB = RGB(GetRgb(0), GetRgb(1), GetRgb(2))
+   WordOb.Bookmarks("Datata").Select
+   WordApOb.selection.Font.Color = RGB(GetRgb(0), GetRgb(1), GetRgb(2))
+   WordApOb.selection.TypeText Text:=Nz(YearT, " ")
+   Set WordOb = Nothing
+   Set WordApOb = Nothing
+End Sub
+Private Function MakeOtd(ByRef Otd As String)
+    MakeOtd = Replace(Otd, "Отделение", "Отд.")
+    MakeOtd = Replace(Otd, "Отдел", "Отд.")
+    MakeOtd = Replace(Otd, "Кафедра", "Каф.")
+End Function
+Private Function WhatOtdCoordinates(ByRef Otd As String) As String
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Dim SQL As String
+    SQL = "SELECT * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya WHERE otd = " & "'" & Otd & "';"
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Set rs = db.OpenRecordset(SQL)
+    On Error GoTo YuraHandler:
+    rs.MoveFirst
+    WhatOtdCoordinates = CStr(rs.Fields(1)) & ",  Корпус - " & CStr(rs.Fields(2)) & ", Этаж - " & CStr(rs.Fields(3))
+    Call ReadWriteDebug("Модуль:PrintModule***Функ:WhatOtdCoordinates***Знач:")
+    Exit Function
+YuraHandler:
+    WhatOtdCoordinates = Otd
+End Function
+Private Function CheckAuto(ByRef StartAuto) As String
+    Dim Saba As String
+    Dim NovoePolozhenie As Boolean
+    Dim StaroePolozhenie As Boolean
+    Dim Simvols As String
+    For i = 1 To Len(StartAuto)
+        NovoePolozhenie = IsCifra(Mid(StartAuto, i, 1))
+        If i > 1 And NovoePolozhenie <> StaroePolozhenie Then
+            Saba = Saba & " " & Mid(StartAuto, i, 1)
+        Else
+            Saba = Saba & Mid(StartAuto, i, 1)
+        End If
+        StaroePolozhenie = NovoePolozhenie
+    Next i
+    CheckAuto = Saba
+End Function
+Private Function IsCifra(ByRef Sim As String) As Boolean
+    IsCifra = False
+    For i = 0 To 9
+        If CStr(i) = Sim Then
+            IsCifra = True
+        End If
+    Next i
+End Function
+Private Function PoluchitCveta() As Integer()
+    Dim PoluchiCveta2(3) As Integer
+        PoluchitCveta2(0) = Red
+        PoluchitCveta2(1) = Green
+        PoluchitCveta2(2) = Blue
+    PoluchitCveta = PoluchitCveta2
+    Call ReadWriteDebug("Модуль:PrintModule***Функ:PoluchitCveta***Знач:")
+End Function
+Public Function IsAppRunning(appName As String) As Boolean
+    Const APP_NAME_EXCEL = "Excel.Application"
+    Const APP_NAME_WORD = "Word.Application"
+    Const APP_NAME_AUTOCAD = "AutoCAD.Application"
+    Const APP_NAME_AUTOCAD_R18 = "AutoCAD.Application.18"
+    Const APP_NAME_AUTOCAD_R16 = "AutoCAD.Application.16"
+    Const APP_NAME_MICROSTATION_V7 = "MicroStation.Application"
+    Const APP_NAME_MICROSTATION_V8 = "MicroStationDGN.Application"
+    Dim objApp As Object
+    On Error GoTo NOT_RUNNING
+    Set objApp = GetObject(, appName)
+    IsAppRunning = Not (objApp Is Nothing)
+    Set objApp = Nothing
+    Call ReadWriteDebug("Модуль:PrintModule***Функ:IsAppRunning***Знач:" & IsAppRunning)
+    Exit Function
+NOT_RUNNING:
+    IsAppRunning = False
+    Set objApp = Nothing
+    Call ReadWriteDebug("Модуль:PrintModule***Функ:IsAppRunning***Знач:" & IsAppRunning)
+End Function
+Sub TestExcel()
+    MsgBox "Microsoft Excel is running = " _
+& CStr(IsAppRunning(APP_NAME_EXCEL))
+End Sub
+Public Function GetColor(ByRef Otd As String) As Integer()
+    On Error GoTo DefaultColor:
+    Dim GetColor2(3) As Integer
+        Dim db As Database
+        Dim rs As DAO.Recordset
+        Set db = DBEngine.Workspaces(0).Databases(0)
+        SQL = "SELECT [Color] FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya WHERE otd = '" & Otd & "'"
+        Set rs = db.OpenRecordset(SQL)
+        Dim Color As Integer
+        Color = Int(rs.Fields(0))
+        SQL = "SELECT [Red],[Green],[Blue] FROM RGBPREF"
+        Set rs = db.OpenRecordset(SQL)
+        rs.Move (Color - 1)
+        GetColor2(0) = rs.Fields(0)
+        GetColor2(1) = rs.Fields(1)
+        GetColor2(2) = rs.Fields(2)
+    GetColor = GetColor2
+DefaultColor:
+    GetColor2(0) = 100
+    GetColor2(1) = 100
+    GetColor2(2) = 100
+End Function
+Public Sub LoadCvet(ByRef SpisokOtd As Object)
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Dim SQL As String
+    SQL = "SELECT [Type] FROM RGBPREF"
+    Set rs = db.OpenRecordset(SQL)
+    Do While (Not rs.EOF)
+        SpisokOtd.AddItem (rs.Fields(0))
+        rs.MoveNext
+    Loop
+End Sub

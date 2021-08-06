@@ -1,0 +1,112 @@
+Option Compare Database
+Public Function CheckFields(NameForm) As Boolean
+Dim cntrl As Control
+Dim str As String
+Dim A As Object
+str = Empty
+For Each cntrl In Forms(NameForm).Controls
+    If TypeOf cntrl Is TextBox Then
+        If (IsNullOrEmpty(cntrl)) And cntrl.Enabled = True And Left(cntrl.Tag, 1) <> "(" Then
+            cntrl.BackColor = RGB(240, 101, 130)
+            str = str & cntrl.Tag & vbNewLine
+        ElseIf cntrl.BackColor = RGB(240, 101, 130) And cntrl.Enabled = True Then
+            'cntrl.BackColor = RGB(119, 192, 212)
+            str = str & cntrl.Tag & vbNewLine
+        Else
+            cntrl.BackColor = vbWhite
+        End If
+    End If
+Next cntrl
+If Not (IsNull(str) Or str = "") Then
+    Dim b As String
+    b = "Есть незаполненные поля! Или в полях где вводятся ФИО - имеются запретные символы (разрешены только буквы,тире, точки)" & vbNewLine & "                              Проверьте Поля указанные ниже:" & vbNewLine & str
+    MsgB = MsgBox(b, vbInformation)
+    CheckFields = False
+    Exit Function
+Else
+    CheckFields = True
+End If
+Call ReadWriteDebug("Модуль:Module4***Функция:CheckFields***Знач:")
+End Function
+Public Function CheckFields_2(NameForm) As Boolean
+Dim cntrl As Control
+Dim str As String
+Dim A As Object
+str = Empty
+For Each cntrl In Forms(NameForm).Controls
+    If TypeOf cntrl Is TextBox Then
+        If cntrl.BackColor = RGB(240, 101, 130) Then
+            'cntrl.BackColor = RGB(240, 101, 130)
+            str = str & cntrl.Tag & vbNewLine
+        Else
+            cntrl.BackColor = vbWhite
+        End If
+    End If
+Next cntrl
+If Not (IsNull(str) Or str = "") Then
+    Dim b As String
+    b = "Некоторые поля заполнены Неправильно!" & String(52, "-") & vbCrLf & str
+    MsgB = MsgBox(b, vbInformation)
+    CheckFields_2 = False
+    Exit Function
+Else
+    CheckFields_2 = True
+End If
+Call ReadWriteDebug("Модуль:Module4***Функция:CheckFields_2***Знач:")
+End Function
+Public Sub RedToWhite(NameForm)
+    Dim cntrl As Control
+    On Error Resume Next:
+    For Each cntrl In Forms(NameForm).Controls
+        cntrl.BackColor = vbWhite
+    Next cntrl
+End Sub
+Private Function IsNullOrEmpty(Tbx As TextBox) As Boolean
+Dim KavychkaCheck As Boolean
+On Error Resume Next:
+KavychkaCheck = CheckKavyChka_2(Tbx.Value)
+If IsNull(Tbx.Value) Or _
+    Len(Nz(Tbx.Value, vbNullString)) = 0 Or _
+    Len(Tbx.Value & vbNullString) = 0 Or KavychkaCheck = True Then
+        IsNullOrEmpty = True
+Else
+        IsNullOrEmpty = False
+End If
+'Call ReadWriteDebug("Модуль:Module4***Функция:IsNullOrEmpty***Знач:")
+End Function
+Public Sub OtdOnlineCount(ByRef Otd As String)
+    Dim SQL As String
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    SQL = "SELECT [Count] FROM OtdeleniyasOnline WHERE OTDELENIE = '" & Otd & "'"
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Set rs = db.OpenRecordset(SQL)
+    If rs.RecordCount = 0 Then
+        SQL = "INSERT INTO OtdeleniyasOnline ([OTDELENIE],[Count]) VALUES ('" & Otd & "','" & 1 & "');"
+    Else
+        SQL = "UPDATE OtdeleniyasOnline SET Count = " & Int(rs.Fields(0) + 1) & " WHERE OTDELENIE = '" & Otd & "'"
+    End If
+    CurrentDb.Execute SQL
+End Sub
+Public Sub OtdGoesOffline(ByRef Otd As String)
+    On Error GoTo NeGoes:
+    Dim SQL As String
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    SQL = "SELECT [Count] FROM OtdeleniyasOnline WHERE OTDELENIE = '" & Otd & "'"
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Set rs = db.OpenRecordset(SQL)
+    If rs.Fields(0) = 1 Then
+        SQL = "DELETE * FROM OtdeleniyasOnline WHERE OTDELENIE = '" & Otd & "'"
+    Else
+        SQL = "UPDATE OtdeleniyasOnline SET Count = " & Int(rs.Fields(0) - 1) & " WHERE OTDELENIE = '" & Otd & "'"
+    End If
+    CurrentDb.Execute SQL
+    Exit Sub
+NeGoes:
+    Dim ima As Integer
+    ima = Err.Number
+    If ima <> 3021 Then
+        MsgBox Err.Description
+    End If
+End Sub

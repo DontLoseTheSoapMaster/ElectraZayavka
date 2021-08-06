@@ -1,0 +1,154 @@
+Option Compare Database
+Public Function CheckKavyChka(Code As Integer) As Integer
+    If Code = 192 Or Code = 222 Then
+        CheckKavyChka = 0
+        i = MsgBox("Одинарные кавычки запрещены")
+    Else
+        CheckKavyChka = Code
+    End If
+End Function
+Public Function CheckKavyChka_2(Texten As String) As Boolean
+    On Error GoTo errHandler:
+    If InStr(1, Texten, "'", vbTextCompare) > 0 Then
+        CheckKavyChka_2 = True
+    Else
+        CheckKavyChka_2 = False
+    End If
+    If InStr(1, Texten, "`", vbTextCompare) > 0 Then
+        CheckKavyChka_2 = True
+    Else
+        CheckKavyChka_2 = False
+    End If
+    'Call ReadWriteDebug("Модуль:Module3***Функция:CheckKavyChka_2, Объект:" & Texten & "***Знач:")
+    Exit Function
+errHandler:
+    Call ReadWriteLog(Err.Description, "CheckKavyChka_2(Module3)")
+    i = MsgBox("Ошибка проверки пароля", vbCritical)
+    CheckKavyChka_2 = False
+End Function
+Public Function CheckSimvol(Texten As String, ByRef Simvols As String, ByRef Burkva As Boolean) As Boolean
+    Dim ZapretSimvols() As String
+    ZapretSimvols() = Split(Simvols, ",")
+    If Burkva = True Then
+        If InStr(1, Texten, ",", vbTextCompare) > 0 Then
+            CheckSimvol = True
+            Exit Function
+        End If
+    End If
+    For i = 0 To UBound(ZapretSimvols) - 1
+    If InStr(1, Texten, ZapretSimvols(i), vbTextCompare) > 0 Then
+        CheckSimvol = True
+        Call ReadWriteDebug("Модуль:Module3***Функция:CheckSimvol, Объект: " & Texten & "***Знач: True")
+        Exit Function
+    Else
+        CheckSimvol = False
+    End If
+    Next i
+    'Call ReadWriteDebug("Модуль:Module3***Функция:CheckSimvol, Объект: " & Texten & "***Знач: False")
+End Function
+Public Sub TolkaBykvy(Text As String, ObjT As Object)
+    If Text <> "" Then
+    Dim Simvols As String
+    Dim Burkva As Boolean
+    Dim SimvolProveryaem As Boolean
+    Simvols = "0,1,2,3,4,5,6,7,8,9,*,+,/,!,@,#,$,%,^,&,(,),_,=,[,{,],},;,:," & Chr(34) & ",\,|,<,>,?,`,~,№,'"
+    Burkva = True
+    SimvolProveryaem = CheckSimvol(Text, Simvols, Burkva)
+    If SimvolProveryaem = True Then
+        i = MsgBox("Вводить можно только буквы", vbCritical)
+        ObjT.SetFocus
+        ObjT.BackColor = RGB(240, 101, 130)
+        'Call ReadWriteDebug("Модуль:Module3***Процедура:TolkaBykvy***Знач: " & Text & " Объект:Желтые границы")
+    Else
+        ObjT.BackColor = vbWhite
+        'Call ReadWriteDebug("Модуль:Module3***Процедура:TolkaBykvy***Знач: " & Text & " Объект:Нормальные границы")
+    End If
+    End If
+End Sub
+Public Sub TolkaBykvy_2(Text As String, ObjT As Object)
+    If Text <> "" Then
+    Dim Simvols As String
+    Dim Burkva As Boolean
+    Dim SimvolProveryaem As Boolean
+    Simvols = "*,+,!,@,#,$,%,^,&,(,),=,[,{,],},;,|,<,>,?,`,~,№,',й,ц,у,к,е,н,г,ш,щ,з,х,ъ,ф,ы,в,а,п,р,о,л,д,ж,э,я,ч,с,м,и,т,ь,б,ю,ё"
+    Burkva = True
+    SimvolProveryaem = CheckSimvol(Text, Simvols, Burkva)
+    If SimvolProveryaem = True Then
+        i = MsgBox("Вводить можно только английские буквы, двоиточие и слэш", vbCritical)
+        ObjT.SetFocus
+        ObjT.BackColor = RGB(240, 101, 130)
+        'Call ReadWriteDebug("Модуль:Module3***Процедура:TolkaBykvy_2***Знач: " & Text & " Объект:Желтые границы")
+    Else
+        ObjT.BackColor = vbWhite
+        'Call ReadWriteDebug("Модуль:Module3***Процедура:TolkaBykvy_2***Знач: " & Text & " Объект:Нормальные границы")
+    End If
+    End If
+End Sub
+Public Function TolkaBykvy2(Text As String) As Boolean
+    If Text <> "" Then
+    TolkaBykvy2 = False
+    Dim Simvols As String
+    Dim Burkva As Boolean
+    Dim SimvolProveryaem As Boolean
+    Simvols = "0,1,2,3,4,5,6,7,8,9,*,+,/,!,@,#,$,%,^,&,(,),_,=,[,{,],},;,:," & Chr(34) & ",\,|,<,>,?,`,~,№,'"
+    Burkva = True
+    SimvolProveryaem = CheckSimvol(Text, Simvols, Burkva)
+    If SimvolProveryaem = True Then
+        'i = MsgBox("Вводить можно только буквы", vbCritical)
+        'ObjT.SetFocus
+        'ObjT.BackColor = RGB(240, 101, 130)
+        TolkaBykvy2 = True
+    End If
+    End If
+    'Call ReadWriteDebug("Модуль:Module3***Функция:TolkaBykvy2***Знач: " & Text & " Функция:" & TolkaBykvy2)
+End Function
+Public Function IsTelNumber(ByRef Tel As String) As Boolean
+    IsTelNumber = False
+    Dim A As Double
+    If Len(Tel) <> 11 And Tel Like "###########" Then IsTelNumber = True
+    On Error GoTo CantPreob:
+        A = CDbl(Tel)
+        'Call ReadWriteDebug("Модуль:Module3***Функция:IsTelNumber***Знач: " & Tel & " Функция:" & IsTelNumber)
+        Exit Function
+CantPreob:
+    IsTelNumber = True
+   ' Call ReadWriteDebug("Модуль:Module3***Функция:IsTelNumber***Знач: " & Tel & " Функция:" & IsTelNumber)
+End Function
+Public Sub Changes(Korobka As Object)
+    On Error Resume Next:
+    Korobka.Value = Replace(Korobka.Value, "'", "")
+    Korobka.Value = Replace(Korobka.Value, "`", "")
+    If Korobka.Value <> "" And Korobka.BackColor = RGB(240, 101, 130) Then Korobka.BackColor = vbWhite
+    'Call ReadWriteDebug("Модуль:module3***Процедура:проверка на ошибки в тексте. Объект: " & Korobka.Name & "***Знач: " & Korobka.Value)
+End Sub
+Public Function DataChecker(Date1 As Object, Date2 As Object) As Boolean
+    If Date2.Value <> "" And Date1.Value <> "" Then
+        If CDate(Date1) - CDate(Date2) > 0 Then
+            i = MsgBox("Время отсчитывается вперед, а не назад. В прошлое не вернуться!", vbCritical)
+            Date2.BackColor = RGB(240, 101, 130)
+            DataChecker = True
+        End If
+    End If
+    If Date1.Value <> "" Then Date1.BackColor = vbWhite
+    If Date2.Value <> "" And DataChecker = False Then Date2.BackColor = vbWhite
+    'Call ReadWriteDebug("Модуль:Module3***Функция:DataChecker***Знач: " & DataChecker)
+End Function
+Public Sub SpisokPT(ByRef Spis As Object)
+    Dim TekGod As Integer
+    Dim NextGod As Integer
+    TekGod = Int(Right(CStr(Date), 4))
+    NextGod = TekGod + 1
+    Spis.RowSource = CStr(TekGod) & ";" & CStr(NextGod)
+    Spis.Value = ""
+End Sub
+Public Sub CheckReds(ByRef Field As Object)
+    If Field.Value <> "" And Field.BackColor = RGB(240, 101, 130) Then Field.BackColor = vbWhite
+End Sub
+Public Function CheckForItem(strItem, ListB As Object) As Boolean
+    For i = 0 To ListB.ListCount - 1
+        If strItem = ListB.ItemData(i) Then
+            CheckForItem = True
+            i = ListB.ListCount - 1
+        End If
+    Next i
+End Function

@@ -1,0 +1,869 @@
+Option Compare Database
+Private Sub Button_2_Click()
+    Dim strSQL1 As String
+    Dim strSQL2 As String
+    Dim strSQL3 As String
+    Dim RefuseReason As String
+    Dim db As Database
+    Dim PeremennayaSoglosovaniyaKadry As Integer
+    Dim PeremennayaSoglosovaniya As Integer
+    Dim TextSoglosovania As String
+    Dim Status As String
+    Button_1.SetFocus
+    Dim TextKad As String
+    If DataField_4 <> "" Then
+        TextSoglosovania = "(Кадры): " & DataField_4.Value
+        DataField_4.Value = TextSoglosovania
+    End If
+    Dim LoadSQL As String
+    If Triger_1.Caption = "Нет!" Then
+        PeremennayaSoglosovaniya = 1
+        PeremennayaSoglosovaniyaKadry = 1
+        Status = "Отказ(Кад)"
+        TextKad = "отказали в соглосовании создания"
+    Else
+        Status = "в обработке(Охр)"
+        PeremennayaSoglosovaniya = 0
+        PeremennayaSoglosovaniyaKadry = 2
+        TextKad = "соглосовали создание"
+        A = 15
+        
+        
+    End If
+    Dim db1 As Database
+        Dim rs1 As DAO.Recordset
+        Set db1 = DBEngine.Workspaces(0).Databases(0)
+        SQL = "SELECT [EmailState],[RDKBEMail] FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users WHERE  Username = " & Chr(39) & Label_43.Caption & Chr(39)
+        Set rs1 = db1.OpenRecordset(SQL)
+        If Not IsNull(rs1.Fields(1)) Then
+            rs1.MoveFirst
+            Dim Email As String
+            Email = rs1.Fields(1)
+            Call MakeTheLetter(Email, TextKad)
+            Call EmailRun
+        End If
+    strSQL1 = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase SET Kadry = " & Chr(39) & CStr(PeremennayaSoglosovaniyaKadry) & Chr(39) & ", RefuseReason = " & Chr(39) & DataField_4.Value & Chr(39) & ", Soglosovanie = " & PeremennayaSoglosovaniya & ", State = " & " '" & Status & "' WHERE Numer_Of_Zayavku = " & "'" & Label_40.Caption & "';"
+    CurrentDb.Execute strSQL1
+    Dim Colvo As Integer
+    Colvo = StringCount(SQLabel.Caption, Maximum, NextB, PageList)
+    Call GetSQL
+    Call ClearSheet
+    Call LoadInSheet(SQLabel.Caption, Colvo)
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:Button_2_Click***Знач:")
+    Exit Sub
+End Sub
+Private Sub MakeTheLetter(ByRef Email As String, ByRef TextKad As String)
+    Set fs = CreateObject("Scripting.FileSystemObject")
+    Set A = fs.CreateTextFile(Environ("HOMEDRIVE") & Environ("HOMEPATH") & "\SendMail\Message.txt", True)
+    A.WriteLine ("From: " & Email & vbNewLine & "To: " & "propusk@rdkb.ru" & vbNewLine & "Subject: Кадры " & TextKad & "пропуска на сотдрудника - " & Label_8.Caption)
+    A.Close
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:MakeTheLetter***Знач:")
+End Sub
+Private Sub EmailRun()
+    Dim WshShell As Object
+    Set WshShell = CreateObject("WScript.Shell")
+    Dim Path As String
+    Path = Environ("HOMEDRIVE") & Environ("HOMEPATH") & "\SendMail\Send!.bat"
+    WshShell.Run Chr(34) & Path & Chr(34), 0
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:EmailRun***Знач:")
+End Sub
+Private Sub DataField_1_AfterUpdate()
+    If Not (IsDate(DataField_1)) Then
+        DataField_1 = DateLabel_1.Caption
+        i = MsgBox("Неправильный ввод даты")
+    End If
+    If DataField_2.Enabled = False Then
+        DataField_2.Value = DataField_1.Value
+    End If
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:DataField_1_AfterUpdate***Знач: " & DataField_1.Value)
+End Sub
+Private Sub DataField_2_AfterUpdate()
+    If Not (IsDate(DataField_2)) Then
+        DataField_2 = DateLabel_2.Caption
+        i = MsgBox("Неправильный ввод даты")
+    End If
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:DataField_2_AfterUpdate***Знач: " & DataField_2.Value)
+End Sub
+Private Sub DataField_4_KeyDown(KeyCode As Integer, Shift As Integer)
+    KeyCode = CheckKavyChka(KeyCode)
+End Sub
+Private Sub Exit_Button_Click()
+    DoCmd.Close acForm, Me.Form.Name
+End Sub
+Private Sub Filter_2_AfterUpdate()
+    If IsNull(Filter_2.Value) Then
+        Filter_2.Value = "Все"
+    End If
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:Filter_2_AfterUpdate***Знач: " & Filter_2.Value)
+End Sub
+Private Sub Filter_3_AfterUpdate()
+    If IsNull(Filter_3.Value) Then
+        Filter_3.Value = "Все"
+    End If
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:Filter_3_AfterUpdate***Знач: " & Filter_3.Value)
+End Sub
+Private Sub Filter_4_AfterUpdate()
+    If IsNull(Filter_4.Value) Then
+        Filter_4.Value = "Все"
+    End If
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:Filter_4_AfterUpdate***Знач: " & Filter_4.Value)
+End Sub
+Private Sub Filter_5_AfterUpdate()
+    If IsNull(Filter_5.Value) Then
+        Filter_5.Value = "Согласованные"
+    End If
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:Filter_5_AfterUpdate***Знач: " & Filter_5.Value)
+End Sub
+Private Sub Form_Close()
+    DoCmd.OpenForm "Vhod"
+    On Error Resume Next:
+    DoCmd.Close acForm, "MainDatabase"
+    DoCmd.Close acForm, "Preferences"
+    DoCmd.Close acForm, "Spisok_Vvoda"
+    DoCmd.Close acForm, "InstructionForm"
+    DoCmd.Close acForm, "ChildrenForm"
+    DoCmd.Close acForm, "OtdTechnical"
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:Form_Close***Знач:")
+End Sub
+Private Sub InText_AfterUpdate()
+    If InText.Value = True Then StartAs.Value = False Else StartAs.Value = True
+End Sub
+Private Sub Preference_Button_Click()
+    DoCmd.OpenForm "Preferences"
+End Sub
+Private Sub StartAs_AfterUpdate()
+    If StartAs.Value = True Then InText.Value = False Else InText.Value = True
+End Sub
+Private Sub Triger_1_Click()
+    If Triger_1.Value = False Then
+        Triger_1.Caption = "Нет!"
+        Label_17.Caption = "Причина Отказа:"
+    End If
+    If Triger_1.Value = True Then
+        Triger_1.Caption = "Да!"
+        Label_17.Caption = "Примечания:"
+    End If
+    If IsNull(Filter_5.Value) Then
+        Filter_5.Value = "Согласованные"
+    End If
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:Triger_1_Click***Знач: " & Triger_1.Value)
+End Sub
+Private Sub RabotaFormy_2(ByRef SQLstr As String)
+Dim Time1 As String
+Dim db As Database
+Dim rs As DAO.Recordset
+Set db = DBEngine.Workspaces(0).Databases(0)
+SQLstr = "SELECT * From MainDatabaseBufer" & Forms![Vhod].Controls![SystemLabel_1].Caption & " ORDER BY KEY DESC"
+Set rs = db.OpenRecordset(SQLstr)
+Dim FieldObject(22) As Object
+Dim IndexField(22) As Integer
+Dim StartPoint As Integer
+Dim TableStat As Boolean
+IndexField(0) = 18
+IndexField(1) = 17
+IndexField(2) = 2
+IndexField(3) = 3
+IndexField(4) = 14
+IndexField(5) = 4
+IndexField(6) = 5
+IndexField(7) = 8
+IndexField(8) = 10
+IndexField(9) = 1
+IndexField(10) = 20
+IndexField(11) = 23
+IndexField(12) = 27
+IndexField(13) = 13
+IndexField(14) = 7
+IndexField(15) = 24
+IndexField(16) = 12
+IndexField(17) = 11
+IndexField(18) = 9
+IndexField(19) = 6
+IndexField(20) = 16
+IndexField(21) = 21
+Set FieldObject(0) = Label_13
+Set FieldObject(1) = Label_1
+Set FieldObject(2) = Label_3
+Set FieldObject(3) = Label_4
+Set FieldObject(4) = Label_5
+Set FieldObject(5) = Label_6
+Set FieldObject(6) = Label_7
+Set FieldObject(7) = Label_8
+Set FieldObject(8) = Label_9
+Set FieldObject(9) = Label_2
+Set FieldObject(10) = Label_16
+Set FieldObject(11) = Label_40
+Set FieldObject(12) = Label_45
+Set FieldObject(13) = Label_14
+Set FieldObject(14) = Label_15
+Set FieldObject(15) = Label_44
+Set FieldObject(16) = Label_12
+Set FieldObject(17) = Label_11
+Set FieldObject(18) = Label_10
+Set FieldObject(19) = DataField_1
+Set FieldObject(20) = DataField_2
+Set FieldObject(21) = DataField_4
+rs.MoveFirst
+Do While (Not rs.EOF)
+        If StartPoint = ListBox1.ListIndex Then
+                TableStat = CBool(rs.Fields(25).Value)
+                If rs.Fields(26).Value <> 0 Or IsNull(rs.Fields(26).Value) Then
+                    Triger_1.Enabled = False
+                    Button_2.Enabled = False
+                Else
+                    Triger_1.Enabled = True
+                    Button_2.Enabled = True
+                End If
+            Exit Do
+        Else
+                StartPoint = StartPoint + 1
+        End If
+rs.MoveNext
+Loop
+FieldObject(13).Caption = "Комментарий:"
+FieldObject(14).Caption = "Основания для выдачи:"
+Dim Imena As String
+Dim Nomera As String
+Dim Telephony As String
+Dim Deti As String
+On Error Resume Next:
+For cvet = 0 To 18
+    FieldObject(cvet).ForeColor = RGB(127, 127, 127)
+Next cvet
+For i = 0 To 12
+    Do While (Not rs.EOF)
+        If StartPoint = ListBox1.ListIndex Then
+            If (i <> 7 And i <> 8 And i <> 12) Or TableStat = False Then
+                If Not IsNull(rs.Fields(IndexField(i))) Then
+                    FieldObject(i).Caption = rs.Fields(IndexField(i)).Value: Exit Do
+                Else
+                    FieldObject(i).Caption = "": Exit Do
+                End If
+            Else
+                FieldObject(i).Caption = "<См. Таблицу>"
+                    If i = 7 Then
+                        Imena = CStr(rs.Fields(IndexField(i)).Value)
+                    ElseIf i = 12 Then
+                        Telephony = CStr(rs.Fields(IndexField(i)).Value)
+                    Else
+                        Nomera = CStr(rs.Fields(IndexField(i)).Value)
+                    End If
+                Exit Do
+            End If
+        Else
+            StartPoint = StartPoint + 1
+        End If
+        rs.MoveNext
+    Loop
+    If FieldObject(i).Caption = "" Then
+        FieldObject(i).Caption = "<Пусто>"
+        FieldObject(i).ForeColor = RGB(255, 0, 0)
+    End If
+Next i
+For i = 13 To 14
+    Do While (Not rs.EOF)
+        If StartPoint = ListBox1.ListIndex Then
+            FieldObject(i).Caption = FieldObject(i).Caption + " " + rs.Fields(IndexField(i)).Value: Exit Do
+            StartPoint = 0
+        Else
+            StartPoint = StartPoint + 1
+        End If
+        rs.MoveNext
+    Loop
+    If FieldObject(i).Caption = "" Then
+        FieldObject(i).Caption = "<Пусто>"
+        FieldObject(i).ForeColor = RGB(255, 0, 0)
+    End If
+Next i
+If FieldObject(1).Caption = "Транспортный" Then
+    For i = 15 To 18
+        Do While (Not rs.EOF)
+            If StartPoint = ListBox1.ListIndex Then
+                FieldObject(i).Caption = rs.Fields(IndexField(i)).Value: Exit Do
+                StartPoint = 0
+            Else
+                StartPoint = StartPoint + 1
+            End If
+            rs.MoveNext
+        Loop
+        If FieldObject(i).Caption = "" Then
+            FieldObject(i).Caption = "<Пусто>"
+            FieldObject(i).ForeColor = RGB(255, 0, 0)
+        End If
+    Next i
+Else
+    FieldObject(15).Caption = "<Не заполняется>"
+    FieldObject(16).Caption = "<Не заполняется>"
+    FieldObject(17).Caption = "<Не заполняется>"
+    FieldObject(18).Caption = "<Не заполняется>"
+End If
+    FieldObject(20).Enabled = True
+    FieldObject(19).Enabled = True
+    If Filter_4.Value = "Несогласованные" Then FieldObject(21).Enabled = True Else FieldObject(21).Enabled = False
+    On Error Resume Next
+    For i = 19 To 21
+        Do While (Not rs.EOF)
+                If StartPoint = ListBox1.ListIndex Then
+                    FieldObject(i).Value = rs.Fields(IndexField(i)).Value: Exit Do
+                Else
+                    StartPoint = StartPoint + 1
+                End If
+                rs.MoveNext
+        Loop
+    Next i
+    If FieldObject(0).Caption <> "Временный" Then
+        FieldObject(20).Value = FieldObject(19).Value
+        FieldObject(20).Enabled = False
+    End If
+    DateLabel_1.Caption = FieldObject(19).Value
+    DateLabel_2.Caption = FieldObject(20).Value
+    If rs.Fields(19) = -1 Then
+        Label_27.Caption = "Дата Аннулир.:"
+        Label_16.Caption = rs.Fields(29)
+    Else
+        Label_27.Caption = "Дата Заполнения:"
+    End If
+    If TableStat = True Then
+        NameNumField.Enabled = True
+        NameNumField.Visible = True
+        Label_48.Visible = True
+        Label_49.Visible = True
+        Label_50.Visible = True
+        For i = 0 To NameNumField.ListCount
+            NameNumField.RemoveItem 0
+        Next i
+        Deti = rs.Fields(30)
+        Call LoadSpisok.LoadImyaNomerTelTabel(Imena, Nomera, Telephony, Deti, NameNumField)
+    Else
+        NameNumField.Enabled = False
+        NameNumField.Visible = False
+        Label_48.Visible = False
+        Label_49.Visible = False
+        Label_50.Visible = False
+    End If
+    DataField_4.Enabled = True
+    Dim Oschibka As String
+    Oschibka = CStr(Err.Description)
+    If (Len(Err.Description) > 0) And (Oschibka <> "Object required" And Oschibka <> "Type mismatch") Then
+        Call ReadWriteLog(Err.Description, "RabotaFormy_2(Interface_Soglosovaniya (Kadry))")
+    End If
+End Sub
+Private Sub LoadImyaNomerTelTabel(ByRef Imya As String, ByRef Nomera As String, Telephony As String)
+    Dim Imena() As String
+    Dim Nomeras() As String
+    Dim Telephonas() As String
+    Imena() = Split(Imya, Chr(10))
+    Nomeras() = Split(Nomera, Chr(10))
+    Telephonas() = Split(Telephony, Chr(10))
+    NameNumField.ColumnCount = 3
+    NameNumField.ColumnWidths = "3600;1700;2100"
+    Dim Tek As String
+    On Error GoTo ErHandler:
+    For i = 0 To UBound(Imena)
+        Tek = Imena(i) & ";" & Telephonas(i) & ";" & Nomeras(i)
+        NameNumField.AddItem Tek
+    Next i
+    Exit Sub
+ErHandler:
+    MsgBox Err.Description
+    Call ReadWriteLog(Err.Description, "LoadImyaNomerTelTabel(Interface_Soglosovaniya (Kadry))")
+End Sub
+Private Sub ListBox1_AfterUpdate()
+    Dim SQLstr As String
+    'Call GetSQL
+    Call RabotaFormy_2(SQLabel.Caption)
+End Sub
+Private Sub Form_Load()
+  Dim Colvo As Integer
+  Call LoadOtd(Otd_Filter, 4)
+  Forms![Vhod].Visible = False
+  Call VyvodSoobcheniya(Form_Vhod.VyborOtdeleniya.Value)
+  Call Module4.OtdOnlineCount(Form_Vhod.Label_Otd.Caption)
+  Label_43.Caption = Form_Vhod.VyborOtdeleniya.Value
+  NumPage.Value = "0"
+  'Filter_1.Value = "30 Дней"
+  'Filter_2.Value = "Все"
+  'Filter_3.Value = "Все"
+  'Filter_4.Value = "Все"
+  PageList.Caption = "0"
+  Dim db As Database
+  Dim rs As DAO.Recordset
+  Set db = DBEngine.Workspaces(0).Databases(0)
+  SQLstr = "SELECT [ЗаявкиЗаПоследние],[ТипПропуска],[ВидПропуска],[Кадры1],[Кадры2] From [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users WHERE Users.[Username] = '" & Label_43.Caption & "';"
+  Set rs = db.OpenRecordset(SQLstr)
+  Filter_1.Value = rs.Fields(0)
+  Filter_2.Value = rs.Fields(1)
+  Filter_3.Value = rs.Fields(2)
+  Filter_4.Value = rs.Fields(3)
+  Filter_5.Value = rs.Fields(4)
+  'SQLabel.Caption = "SELECT * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase WHERE (Kadry = 0 OR Отделение = 'Отдел Кадров')  AND  (DATE() - Date_Of_Zapolnenia) < " + CStr(30)
+  'Colvo = StringCount(SQLabel.Caption, Maximum, NextB, PageList)
+  'Call ClearSheet
+  'Call LoadInSheet(SQLabel.Caption, Colvo)
+  Call Button_1_Click
+  Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:Form_Load***Знач:")
+End Sub
+Private Sub Выключатель86_Click()
+    If Special = True Then
+        ListBox1.Enabled = True
+        ZayavokList.Enabled = False
+    Else
+        ListBox1.Enabled = False
+        ZayavokList.Enabled = True
+    End If
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:Выключатель86_Click")
+End Sub
+Private Sub Go_Click()
+    On Error GoTo errHandler:
+    Prev.Enabled = True
+    NextB.Enabled = True
+    If NumPage.Value = "0" Then Prev.Enabled = False
+    If Int(NumPage.Value) = Int(Maximum.Caption) Then NextB.Enabled = False
+    PageList.Caption = NumPage.Value
+    Call CommonMethod
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:Go_Click***Знач: Переход на " & PageList.Caption)
+    Exit Sub
+errHandler:
+    MsgBox Err.Description
+    Call ReadWriteLog(Err.Description, "Go_Click(Interface_Soglosovaniya (Kadry))")
+End Sub
+Private Sub NextB_Click()
+    PageList.Caption = Int(PageList.Caption + 1)
+    Prev.Enabled = True
+    Call CommonMethod
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:NextB_Click***Знач: " & PageList.Caption)
+End Sub
+Private Sub Prev_Click()
+    PageList.Caption = Int(PageList.Caption - 1)
+    NextB.Enabled = True
+    Call CommonMethod
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:Prev_Click***Знач: " & PageList.Caption)
+End Sub
+Private Sub Button_1_Click()
+    PageList.Caption = "0"
+    Prev.Enabled = False
+    Call CommonMethod
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:Button_1_Click***Знач:")
+End Sub
+Private Sub CommonMethod()
+    Dim SQLstr As String
+    Dim Colvo As Integer
+    Dim A As Double
+    PoiskFlag.SetFocus
+    Call GetSQL
+    Colvo = StringCount(SQLabel.Caption, Maximum, NextB, PageList)
+    Call ClearSheet
+    Call LoadInSheet(SQLabel.Caption, Colvo)
+    If Int(PageList.Caption) = 0 Then
+        Button_1.SetFocus
+        Prev.Enabled = False
+    End If
+    If Int(PageList.Caption) = Int(Maximum.Caption) Then
+        Button_1.SetFocus
+        NextB.Enabled = False
+    End If
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:CommonMethod***Знач:")
+End Sub
+Private Sub ClearSheet()
+    ListBox1.RowSource = ""
+End Sub
+Private Sub LoadInSheet(ByVal SQLstr As String, ByRef Colvo As Integer)
+Dim db As Database
+Dim rs As DAO.Recordset
+Dim A As Integer
+Set db = DBEngine.Workspaces(0).Databases(0)
+Dim bd As String
+Dim Colichestvo As Integer
+If PageList.Caption = Maximum.Caption Then
+    Colichestvo = Colvo - ((Int(PageList.Caption)) * 75)
+Else
+    Colichestvo = 75
+End If
+If Colichestvo > 0 Then
+    bd = "SELECT TOP " & (Int(PageList.Caption) + 1) * 75 & " *"
+    SQLstr = "SELECT TOP " & Colichestvo & " * From (" & Replace(SQLstr, "SELECT *", bd) + " ORDER BY KEY DESC" & ")" & "ORDER BY KEY"
+    Dim SQLBufer As String
+    Dim CleanBufer As String
+    On Error GoTo ErHandler:
+    CleanBufer = "DELETE * FROM MainDatabaseBufer" & Forms![Vhod].Controls![SystemLabel_1].Caption
+    CurrentDb.Execute CleanBufer
+ErHandler:
+    SQLBufer = "INSERT INTO MainDatabaseBufer" & Forms![Vhod].Controls![SystemLabel_1].Caption & " " & SQLstr & ";"
+    CurrentDb.Execute SQLBufer
+    SQLstr = "SELECT * From MainDatabaseBufer" & Forms![Vhod].Controls![SystemLabel_1].Caption & " ORDER BY KEY DESC"
+    Set rs = db.OpenRecordset(SQLstr)
+    rs.MoveFirst
+    Dim ElementStr As String
+    ListBox1.ColumnCount = 4
+    ListBox1.ColumnWidths = "250;1800;1200;2100"
+    Do While (Not rs.EOF)
+            If rs.Fields(26).Value = 0 Then
+                ElementStr = "О" & ";" & rs.Fields(22).Value & ";" & rs.Fields(23).Value & ";" & rs.Fields(8).Value
+            ElseIf Not IsNull(rs.Fields(26).Value) Then
+                ElementStr = "S" & ";" & rs.Fields(22).Value & ";" & rs.Fields(18).Value & ";" & rs.Fields(8).Value
+            Else
+                ElementStr = "K" & ";" & rs.Fields(22).Value & ";" & rs.Fields(18).Value & ";" & rs.Fields(8).Value
+            End If
+        ListBox1.AddItem ElementStr
+        rs.MoveNext
+    Loop
+End If
+If ListBox1.ListCount > 0 Then
+    Label_38.Visible = False
+    ListBox1.Selected(0) = True
+    If Label_1.Visible = False Then
+        Call ZayavkiEst
+    End If
+    Call ListBox1_AfterUpdate
+Else
+    i = MsgBox("Заявок нет", vbCritical)
+    Call ZayavokNet
+End If
+Dim Oschibka As String
+Oschibka = CStr(Err.Description)
+If (Len(Err.Description) > 0) And Oschibka <> "Object required" And Oschibka <> "Type mismatch" Then
+    Call ReadWriteLog(Err.Description, "LoadInSheet(Interface_Soglosovaniya (Kadry))")
+End If
+Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:LoadInSheet***Знач:")
+End Sub
+Private Sub GetSQL()
+    Dim FirstFilter As String
+    Dim SecondFilter As String
+    Dim ThirdFilter As String
+    Dim FourthFilter As String
+    Dim Znachenie5 As Integer
+    Dim Znak As String
+    Dim TYpeOfData As String
+    If PoiskFlag.Value = False Then
+    A = Label_18.Caption
+    FirstFilter = Filter_1.Value
+    SecondFilter = Filter_2.Value
+    ThirdFilter = Filter_3.Value
+    FourthFilter = Filter_4.Value
+    If Filter_3.ListIndex > 4 Then
+        Filter_1.Value = "Без Огранич."
+        FirstFilter = Filter_1.Value
+    End If
+    If Filter_5.Value = "Согласованные" And Filter_5.Enabled = True Then
+        Triger_1.Enabled = False
+        Button_2.Enabled = False
+        Znachenie5 = False
+        Znak = ">"
+    Else
+        Triger_1.Enabled = True
+        Button_2.Enabled = True
+        DataField_4.Enabled = True
+        Znachenie5 = True
+        Znak = "="
+    End If
+    Dim Cra As String
+    TYpeOfData = "Date_Of_Zapolnenia"
+    If Filter_1.Enabled = True Then
+        If FirstFilter <> "Без Огранич." Then
+            Cra = " AND  (DATE() - " & TYpeOfData & ") < " + Left(FirstFilter, 2)
+        End If
+    Else
+            Cra = " AND [" & TYpeOfData & "] = " & "#" & Format$(Zapolneniya_Date.Value, "mm\/dd\/yyyy") & "# "
+    End If
+    If Filter_3.Value = "Врем(Дейст)" Or Filter_3.Value = "Пост(Текущие)" And Filter_4.Value <> "Мои Заявки" Then
+        FourthFilter = "Мои Заявки"
+        Filter_4.Value = "Мои Заявки"
+        i = MsgBox("Фильтрация изменена!", vbExclamation)
+    End If
+    If FourthFilter = "Другие Заявки" Then
+        SQLabel.Caption = "SELECT * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase WHERE Kadry " & Znak & " 0" & "AND Soglosovanie " & Znak & " 0 AND NOT Отделение = 'Отдел Кадров' " & Cra
+    ElseIf FourthFilter = "Мои Заявки" Then
+        SQLabel.Caption = "SELECT * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase WHERE Отделение = 'Отдел Кадров'" & "AND Soglosovanie " & Znak & " 0" & Cra
+    Else:
+        SQLabel.Caption = "SELECT * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase WHERE (Kadry " & Znak & " 0 OR Отделение = 'Отдел Кадров')" & "AND Soglosovanie " & Znak & " 0" & Cra
+    End If
+    If FirstFilter = "Без Огранич." Then
+        SQLabel.Caption = Replace(SQLabel.Caption, "AND  (DATE() - " & TYpeOfData & ") < " + Left(FirstFilter, 2), "")
+    End If
+    If SecondFilter <> "Все" Then SQLabel.Caption = SQLabel.Caption + "AND Type_Zayavki = " + Chr(34) + SecondFilter + Chr(34)
+    If ThirdFilter <> "Все" Then
+        If Filter_3.ListIndex < 3 Then
+            SQLabel.Caption = SQLabel.Caption + "AND Vyd_Zayavki = " + Chr(34) + ThirdFilter + Chr(34)
+        ElseIf Filter_3.Value = "Врем(Дейст)" Then
+            SQLabel.Caption = SQLabel.Caption + "AND Vyd_Zayavki = " + Chr(34) + "Временный" + Chr(34) & "And Soglosovanie > 1 And ([Дата_конца_действия] - DATE()) >= 0"
+            SQLabel.Caption = Replace(SQLabel.Caption, "WHERE Kadry " & Znak & " 0", "Отделение = 'Отдел Кадров'")
+        ElseIf Filter_3.Value = "Пост(Заяв)" Then
+            SQLabel.Caption = SQLabel.Caption + "AND Vyd_Zayavki = " + Chr(34) + "Постоянный" + Chr(34)
+        ElseIf Filter_3.Value = "Пост(Текущие)" Then
+            SQLabel.Caption = Replace(SQLabel.Caption, "WHERE Kadry " & Znak & " 0", "Отделение = 'Отдел Кадров'")
+            SQLabel.Caption = SQLabel.Caption + "AND Vyd_Zayavki = " + Chr(34) + "Постоянный" + Chr(34)
+            SQLabel.Caption = Replace(SQLabel.Caption, "Soglosovanie >" & " 0", "Soglosovanie > 1 ")
+            SQLabel.Caption = Replace(SQLabel.Caption, "AND  (DATE() - " & TYpeOfData & ") <= " + Left(FirstFilter, 2), "")
+        ElseIf Filter_3.Value = "Пост(Аннулир.)" Then
+            TYpeOfData = "AnulateDate"
+            SQLabel.Caption = Replace(SQLabel.Caption, "Soglosovanie " & Znak & " 0", "Soglosovanie = -1 ")
+            'SQLabel.Caption = SQLabel.Caption + "AND Soglosovanie = " & "- 1"
+            SQLabel.Caption = Replace(SQLabel.Caption, "AND  (DATE() - " & TYpeOfData & ") <= " + Left(FirstFilter, 2), "")
+        End If
+    End If
+    Else
+        Dim StateV As String
+        If InText.Value = True Then StateV = "*" Else StateV = ""
+        SQLabel.Caption = "SELECT *  FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase"
+        If Not (IsNull(FIO_Filter.Value)) Or Not (IsNull(Otd_Filter.Value)) Then
+            SQLabel.Caption = SQLabel.Caption & " WHERE "
+            If Not (IsNull(FIO_Filter.Value)) And Not (IsNull(Otd_Filter.Value)) Then
+                SQLabel.Caption = SQLabel.Caption & "[ФИО Водителя] Like " & Chr(34) & StateV & FIO_Filter.Value & "*" & Chr(34) & "AND [Отделение] = " & "'" & Otd_Filter.Value & "'"
+            ElseIf Not (IsNull(FIO_Filter.Value)) Then
+                SQLabel.Caption = SQLabel.Caption & "[ФИО Водителя] Like " & Chr(34) & StateV & FIO_Filter.Value & "*" & Chr(34)
+            ElseIf Not (IsNull(Otd_Filter.Value)) Then
+                SQLabel.Caption = SQLabel.Caption & "[Отделение] = " & Chr(39) & Otd_Filter.Value & Chr(39)
+            End If
+        End If
+        If Otd_Filter.Value <> "Отдел Кадров" Or IsNull(Otd_Filter.Value) Then
+            If IsNull(Otd_Filter.Value) Then
+                SQLabel.Caption = SQLabel.Caption & " AND ([Отделение] = 'Отдел Кадров' OR ([Kadry] IS NOT NULL))"
+            Else
+                SQLabel.Caption = SQLabel.Caption & " AND [Kadry] IS NOT NULL"
+            End If
+        End If
+    End If
+End Sub
+Private Sub ButtonCreateZayavka_Click()
+    Osnovanie.Caption = False
+    DoCmd.OpenForm "MainDatabase"
+    Form_MainDatabase.listBox_1.Enabled = True
+    Form_MainDatabase.listBox_1.Visible = True
+    Call LoadOtd(Form_MainDatabase.listBox_1, 4)
+    Form_MainDatabase.listBox_1.Value = "Отдел Кадров"
+    Call Form_MainDatabase.CoprusFloor
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:ButtonCreateZayavka_Click***Знач:")
+End Sub
+Private Sub CreateOnOsnov_Click()
+    If Not CurrentProject.AllForms("MainDatabase").IsLoaded Then
+        Osnovanie.Caption = True
+        DoCmd.OpenForm "MainDatabase"
+        Form_MainDatabase.listBox_1.Enabled = True
+        Form_MainDatabase.listBox_1.Visible = True
+        Call LoadOtd(Form_MainDatabase.listBox_1, 4)
+        'Form_MainDatabase.listBox_1.Value = "Отдел Кадров"
+        Call Form_MainDatabase.CoprusFloor
+    Else
+        Form_MainDatabase.Osnovanie.Caption = True
+        DoCmd.OpenForm "MainDatabase"
+    End If
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:CreateOnOsnov_Click***Знач: " & Label_40.Caption)
+End Sub
+Private Sub ZayavkiEst()
+Label_1.Visible = True
+Label_2.Visible = True
+Label_3.Visible = True
+Label_4.Visible = True
+Label_5.Visible = True
+Label_6.Visible = True
+Label_7.Visible = True
+Label_8.Visible = True
+Label_9.Visible = True
+Label_10.Visible = True
+Label_11.Visible = True
+Label_12.Visible = True
+Label_13.Visible = True
+Label_14.Visible = True
+Label_15.Visible = True
+Label_16.Visible = True
+Label_17.Visible = True
+Label_18.Visible = True
+Label_19.Visible = True
+Label_20.Visible = True
+Label_21.Visible = True
+Label_22.Visible = True
+Label_23.Visible = True
+Label_24.Visible = True
+Label_25.Visible = True
+Label_26.Visible = True
+Label_27.Visible = True
+Label_28.Visible = True
+Label_29.Visible = True
+Label_30.Visible = True
+Label_31.Visible = True
+Label_32.Visible = True
+Label_33.Visible = True
+Label_34.Visible = True
+Label_35.Visible = True
+Label_36.Visible = True
+Label_38.Visible = False
+Label_39.Visible = True
+Label_40.Visible = True
+Label_44.Visible = True
+Label_45.Visible = True
+Label_46.Visible = True
+Label_47.Visible = True
+DataField_1.Visible = True
+DataField_2.Visible = True
+DataField_4.Visible = True
+DataField_4.Enabled = True
+Line_1.Visible = True
+Rectangle_1.Visible = True
+Rectangle_2.Visible = True
+Rectangle_3.Visible = True
+Rectangle_4.Visible = True
+ListBox1.Visible = True
+ListBox1.Enabled = True
+Triger_1.Visible = True
+Triger_1.Enabled = True
+Button_2.Enabled = True
+Button_2.Visible = True
+CreateOnOsnov.Enabled = True
+Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:ZayavkiEst***Знач:")
+End Sub
+Private Sub ZayavokNet()
+Go.SetFocus
+Label_1.Visible = False
+Label_2.Visible = False
+Label_3.Visible = False
+Label_4.Visible = False
+Label_5.Visible = False
+Label_6.Visible = False
+Label_7.Visible = False
+Label_8.Visible = False
+Label_9.Visible = False
+Label_10.Visible = False
+Label_11.Visible = False
+Label_12.Visible = False
+Label_13.Visible = False
+Label_14.Visible = False
+Label_15.Visible = False
+Label_16.Visible = False
+Label_17.Visible = False
+Label_18.Visible = False
+Label_19.Visible = False
+Label_20.Visible = False
+Label_21.Visible = False
+Label_22.Visible = False
+Label_23.Visible = False
+Label_24.Visible = False
+Label_25.Visible = False
+Label_26.Visible = False
+Label_27.Visible = False
+Label_28.Visible = False
+Label_29.Visible = False
+Label_30.Visible = False
+Label_31.Visible = False
+Label_32.Visible = False
+Label_33.Visible = False
+Label_34.Visible = False
+Label_35.Visible = False
+Label_36.Visible = False
+Label_38.Visible = True
+Label_39.Visible = False
+Label_40.Visible = False
+Label_44.Visible = False
+Label_45.Visible = False
+Label_46.Visible = False
+Label_47.Visible = False
+Label_48.Visible = False
+Label_49.Visible = False
+Label_50.Visible = False
+DataField_1.Visible = False
+DataField_2.Visible = False
+DataField_4.Visible = False
+DataField_4.Value = ""
+DataField_4.Enabled = False
+Line_1.Visible = False
+Rectangle_1.Visible = False
+Rectangle_2.Visible = False
+Rectangle_3.Visible = False
+Rectangle_4.Visible = False
+'ListBox1.Visible = False
+ListBox1.Enabled = False
+Triger_1.Visible = False
+Triger_1.Enabled = False
+Button_2.Visible = False
+Button_2.Enabled = False
+NameNumField.Visible = False
+NameNumField.Enabled = False
+CreateOnOsnov.Enabled = False
+Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:ZayavokNet***Знач:")
+End Sub
+Private Sub PoiskFlag_AfterUpdate()
+    If PoiskFlag.Value = True Then
+        Filter_1.Enabled = False
+        Filter_2.Enabled = False
+        Filter_3.Enabled = False
+        Filter_4.Enabled = False
+        Filter_5.Enabled = False
+        Filter_1.Visible = False
+        Filter_2.Visible = False
+        Filter_3.Visible = False
+        Filter_4.Visible = False
+        Filter_5.Visible = False
+        DOZLabel.Visible = False
+        Zapolneniya_Date.Enabled = False
+        Zapolneniya_Date.Visible = False
+        ReturnShield.Enabled = False
+        ReturnShield.Visible = False
+        FIO_Filter.Enabled = True
+        Otd_Filter.Enabled = True
+        FIO_Filter.Visible = True
+        Otd_Filter.Visible = True
+        Otd_Label_2.Visible = True
+        InText.Visible = True
+        InText.Enabled = True
+        StartAs.Visible = True
+        StartAs.Enabled = True
+    Else
+        Filter_1.Enabled = True
+        Filter_2.Enabled = True
+        Filter_3.Enabled = True
+        Filter_4.Enabled = True
+        Filter_5.Enabled = True
+        Filter_1.Visible = True
+        Filter_2.Visible = True
+        Filter_3.Visible = True
+        Filter_4.Visible = True
+        Filter_5.Visible = True
+        If Filter_1.Value = "Выбр. дату" Then
+            Filter_1.Value = "30 Дней"
+        End If
+        FIO_Filter.Enabled = False
+        Otd_Filter.Enabled = False
+        FIO_Filter.Visible = False
+        Otd_Filter.Visible = False
+        Otd_Label_2.Visible = False
+        InText.Visible = False
+        InText.Enabled = False
+        StartAs.Visible = False
+        StartAs.Enabled = False
+    End If
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:PoiskFlag_AfterUpdate***Знач:")
+End Sub
+Private Sub ReturnShield_Click()
+        PoiskFlag.SetFocus
+        DOZLabel.Visible = False
+        Zapolneniya_Date.Enabled = False
+        Zapolneniya_Date.Visible = False
+        ReturnShield.Enabled = False
+        ReturnShield.Visible = False
+        Filter_1.Enabled = True
+        Filter_1.Visible = True
+        Filter_1.Value = "30 Дней"
+        Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:ReturnShield_Click***Знач:")
+End Sub
+Private Sub Filter_1_AfterUpdate()
+    If IsNull(Filter_1.Value) Then
+        Filter_1.Value = "30 дней"
+    End If
+    If Filter_1.Value = "Выбр. дату" Then
+        PoiskFlag.SetFocus
+        Zapolneniya_Date.Enabled = True
+        Zapolneniya_Date.Visible = True
+        Zapolneniya_Date.Value = Date
+        ReturnShield.Enabled = True
+        ReturnShield.Visible = True
+        DOZLabel.Visible = True
+        Filter_1.Enabled = False
+        Filter_1.Visible = False
+    End If
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:Filter_1_AfterUpdate***Знач: " & Filter_1.Value)
+End Sub
+Private Sub Zapolneniya_Date_AfterUpdate()
+    If IsNull(Zapolneniya_Date.Value) Then
+        Zapolneniya_Date.Value = Date
+    End If
+    Call ReadWriteDebug("Форма:Interface_Soglosovaniya (Kadry)***Процедура:Zapolneniya_Date_AfterUpdate***Знач:")
+End Sub

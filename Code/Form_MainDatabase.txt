@@ -1,0 +1,1349 @@
+Sub BButton_Click()
+If NeskolkoPosetiteley = False Or (NeskolkoPosetiteley = True And Names.ListCount > 0) Then
+Dim Wapp As String
+Wapp = "Word.Application"
+If AutoPrintFlag.Value = False Or AutoPrintFlag.Enabled = False Or IsAppRunning(Wapp) = False Then
+Dim str As String
+Dim strSQL As String
+Dim EstPusto As Boolean
+Dim periodDeistviya As String
+Dim TypeOfPropuskDate As Date
+Dim Obrabotka As String
+Dim EmailState As Boolean
+Dim Byro As Integer
+Dim Gagatochka As Boolean
+Byro = 0
+EmailState = True
+str = "MainDatabase"
+str2 = listBox_1.Value
+EstPusto = CheckFields(str)
+If ReasonGet.Enabled = True And EstPusto = True And (IsNull(ReasonGet.Value) Or ReasonGet.Value = "") Then
+    i = MsgBox("Заполните причину подачи заявки на постоянный пеший/транспортный пропуск", vbCritical)
+    ReasonGet.BackColor = RGB(240, 101, 130)
+    EstPusto = False
+End If
+If PoleDlyaPostoyan.Enabled = True And EstPusto = True And (IsNull(PoleDlyaPostoyan.Value) Or PoleDlyaPostoyan.Value = "") Then
+    Dim EraMessage As String
+    If TypePropuskaBar.Value = "Транспортный" Then EraMessage = "Выберите год действия пропуска" Else EraMessage = "Выберите Должность"
+    i = MsgBox(EraMessage, vbCritical)
+    PoleDlyaPostoyan.BackColor = RGB(240, 101, 130)
+    EstPusto = False
+Else
+    If PoleDlyaPostoyan.Enabled = True Then
+        If TypePropuskaBar.Value = "Транспортный" Then
+            If PoleDlyaPostoyan.ListIndex = 1 Then
+                Comment.Value = "ПТ на " & PoleDlyaPostoyan.Value
+            End If
+        Else
+            Comment.Value = Comment.Value & " Должность: " & PoleDlyaPostoyan.Value
+        End If
+    End If
+End If
+If Not IsNull(ReasonGet.Value) And ReasonGet.Value = "Поступл. на работу РДКБ" Then
+    Gagatochka = True
+Else
+    Gagatochka = False
+End If
+If EstPusto = True Then
+ReasonGet.BackColor = vbWhite
+PoleDlyaPostoyan.BackColor = vbWhite
+If TextField3.Value <> "" Then
+    periodDeistviya = CStr(Int(TextField3.Value - TextField2.Value))
+    TypeOfPropuskDate = TextField2.Value
+Else
+    If ScrollBar1.Value = "Разовый" Then
+        TypeOfPropuskDate = TextField1.Value
+        periodDeistviya = "1"
+    Else
+        If PoleDlyaPostoyan.Value = Right(Date, 4) Or TypePropuskaBar.Value = "Пеший" Then
+            TypeOfPropuskDate = Date
+        Else
+            TypeOfPropuskDate = CDate("01.01." & CStr(Int(Right(Date, 4) + 1)))
+        End If
+        periodDeistviya = "Постоянный"
+    End If
+End If
+Dim ZnachenieImen As String
+Dim ZnachenieNumerov As String
+Dim ZnacheniePosContact As String
+Dim ChildrenState As String
+Dim TableState As Boolean
+Dim ColvoLydei As Integer
+If NeskolkoPosetiteley.Value = True Then
+    ColvoLydei = ColvoLydei + Names.ListCount
+    TableState = True
+        ZnachenieImen = CStr(Names.ItemData(0))
+        ZnachenieNumerov = CStr(Numers.ItemData(0))
+        ZnacheniePosContact = CStr(Contacts.ItemData(0))
+        ChildrenState = Childreee.ItemData(0)
+    If Names.ListCount > 0 Then
+        For i = 1 To Names.ListCount - 1
+            ZnachenieImen = ZnachenieImen & vbNewLine & CStr(Names.ItemData(i))
+            ZnachenieNumerov = ZnachenieNumerov & vbNewLine & CStr(Numers.ItemData(i))
+            ZnacheniePosContact = ZnacheniePosContact & vbNewLine & CStr(Contacts.ItemData(i))
+            ChildrenState = ChildrenState & vbNewLine & CStr(Childreee.ItemData(i))
+        Next i
+    End If
+Else
+    ColvoLydei = ColvoLydei + 1
+    TableState = False
+    ZnachenieImen = FIOVodyly.Value
+    ZnachenieNumerov = Serial_Num.Value
+    If PasportType.Value = "Паспорт РФ" Then
+        ZnachenieNumerov = Left(Serial_Num.Value, 4) & " " & Right(Serial_Num.Value, 6)
+    Else
+        ZnachenieNumerov = Serial_Num.Value
+    End If
+    ZnacheniePosContact = "8-(" & Left(Contact_Pos.Value, 3) & ")-" & Mid(Contact_Pos.Value, 4, 3) & "-" & Mid(Contact_Pos.Value, 7, 2) & "-" & Mid(Contact_Pos.Value, 9)
+End If
+Dim TNumber As String
+Dim TNumber2 As String
+If Len(Contact) < 9 Then
+    TNumber = "(" & Left(Contact.Value, 1) & "-" & Mid(Contact.Value, 2) & ")"
+Else
+    TNumber = "8-(" & Left(Contact.Value, 3) & ")-" & Mid(Contact.Value, 4, 3) & "-" & Mid(Contact.Value, 7, 2) & "-" & Mid(Contact.Value, 9)
+End If
+Call CheckByro(Byro)
+'UpdateNumer = ChangeInScrollBar
+'Dim db1 As Database
+'Dim rs1 As DAO.Recordset
+'Set db1 = DBEngine.Workspaces(0).Databases(0)
+'Set rs1 = db1.OpenRecordset(UpdateNumer)
+'Dim a As Integer
+'rs1.MoveFirst
+'Do While (Not rs1.EOF)
+'    a = Int(rs1.Fields(0))
+'rs1.MoveNext
+'Loop
+'NumZayavkiField.Value = Left(NumZayavkiField.Value, 2) & (a + 1)
+If ReasonGet.Enabled = True Then
+    If PoleDlyaPostoyan.Value <> CStr(Int((Right((Date), 4)) + 1)) Then
+        Comment.Value = Comment.Value & " Причина получения пропуска:" & ReasonGet.Value
+    End If
+End If
+If Not IsNull(FIOSoprovod.Value) And FIOSoprovod.Value <> "" Then ColvoLydei = ColvoLydei + 1
+strSQL = "INSERT INTO [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase" _
+& "([Фамилия],[Имя],[Отчество],[№ Компьютера],[Контактная информация],[First_Day],[Основания проезда],[ФИО Водителя],[ФИО Сопровождающего],[Серия и номер документа Удостоверяющего личность]," & _
+"[Марка автомобиля],[Государственный номер],[Коментарии],[Отделение],[период действия пропуска],[Дата_конца_действия],[Type_Zayavki],[Vyd_Zayavki],[Soglosovanie],[Date_Of_Zapolnenia],[State],[Numer_Of_Zayavku],[Gruz],[TableStat],[PosContact],[Byro],[ChildrensState],[Colvo_Lydei]) VALUES " & "('" & FirstName.Value & "' " & ",'" & LastName.Value & "' " & " ,'" & Otchestvo.Value & "' " & " ,'" & ComputerName.Value & "' " & " ,'" & TNumber & "' " & " ,'" & TypeOfPropuskDate & "' " & " ,'" & ReasonEnterance.Value & "' " & " ,'" & ZnachenieImen & "' " & " ,'" & FIOSoprovod.Value & "' " & " ,'" & ZnachenieNumerov & "' " & " ,'" & Auto.Value & "' " & " ,'" & NumerAuto.Value & "' " & " ,'" & Comment.Value & "' " & " ,'" & listBox_1.Value & "' " & " ,'" & periodDeistviya & "' " & " ,'"
+strSQL = strSQL & TextField3.Value & "' " & " ,'" & TypePropuskaBar.Value & "' " & " ,'" & ScrollBar1.Value & "' " & " ,'" & "0" & "' " & " ,'" & (Now) & "' " & " ,'" & "в обработке(Охр)" & "' " & " ,'" & NumZayavkiField.Value & "' " & " ,'" & Gruz.Value & "' " & " ,'" & TableState & "' " & " ,'" & ZnacheniePosContact & "' " & " ,'" & Byro & "' " & " ,'" & ChildrenState & "' " & " ,'" & ColvoLydei & "');"
+CurrentDb.Execute strSQL
+Call CheckNomer_2
+If TypePropuskaBar.Value = "Пеший" Then
+    If ScrollBar1.Value = "Постоянный" And TypePropuskaBar = "Пеший" And ReasonGet.ListIndex = 0 Then
+        strSQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase SET Kadry = 0, State = 'в обработке(Кад)' WHERE Numer_Of_Zayavku = " & "'" & NumZayavkiField.Value & "';"
+        CurrentDb.Execute strSQL
+    ElseIf (ScrollBar1.Value = "Разовый" Or ScrollBar1.Value = "Временный") And Byro = 1 Then
+        If AutoPrintFlag.Value = True Then
+            strSQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase SET Soglosovanie = 3, State = 'прп. напечатан' WHERE Numer_Of_Zayavku = " & "'" & NumZayavkiField.Value & "';"
+        Else
+            strSQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase SET Soglosovanie = 2, State = 'согласована' WHERE Numer_Of_Zayavku = " & "'" & NumZayavkiField.Value & "';"
+        End If
+        CurrentDb.Execute strSQL
+        EmailState = False
+    End If
+End If
+If AutoPrintFlag.Value = True And AutoPrintFlag.Enabled = True And Byro = 1 Then
+    Dim Dats1 As String
+    Dim Dats2 As String
+    If TextField1.Enabled = True Then
+        Dats1 = TextField1.Value
+        Dats2 = Dats1
+    Else
+        Dats1 = TextField2.Value
+        Dats2 = TextField3.Value
+    End If
+    If IsNull(Corpus.Value) Then
+        Corpus.Value = ""
+    End If
+    If IsNull(Floor.Value) Then
+        Floor.Value = ""
+    End If
+    If NeskolkoPosetiteley.Value = False Then
+        Call PrintModule.Printer(NumZayavkiField.Value, Names, FIOVodyly.Value, Serial_Num.Value, ZnacheniePosContact, ReasonEnterance.Value, FirstName.Value, LastName.Value, Otchestvo.Value, TNumber, Dats1, listBox_1.Value, Dats2, " ", " ", " ", True, Corpus.Value, Floor.Value, False, 0, 0, 0)
+    Else
+        For i = 0 To Names.ListCount - 1
+            If Childreee.ItemData(i) = 0 Then Call PrintModule.Printer(NumZayavkiField.Value, Names, CStr(Names.ItemData(i)), CStr(Numers.ItemData(i)), CStr(Contacts.ItemData(i)), ReasonEnterance.Value, FirstName.Value, LastName.Value, Otchestvo.Value, TNumber, Dats1, listBox_1.Value, Dats2, " ", " ", " ", True, Corpus.Value, Floor.Value, False, 0, 0, 0)
+        Next i
+    End If
+    NLast.Caption = NumZayavkiField.Value
+Else
+     NLast.Caption = "NLast"
+     RepeatPrint.Enabled = False
+     RepeatPrint.Visible = False
+End If
+For Each cntrl In Me.Controls
+    If TypeOf cntrl Is TextBox Then
+        If cntrl.Enabled = True And cntrl.BorderColor <> vbBlack Then
+            cntrl.Value = ""
+        End If
+    End If
+Next cntrl
+If CurrentProject.AllForms("Spisok_Vvoda").IsLoaded Then
+    Names.RowSource = ""
+    Contacts.RowSource = ""
+    Numers.RowSource = ""
+    DoCmd.Close acForm, "Spisok_Vvoda"
+End If
+Call CheckChildrens
+'Call listBox_1_AfterUpdate
+i = MsgBox("Заявка успешно создана", vbInformation)
+Dim User As String
+If CurrentProject.AllForms("Interface_Soglosovaniya").IsLoaded Then
+    User = Forms![Interface_Soglosovaniya].Controls![Label_43].Caption
+ElseIf CurrentProject.AllForms("Interface_Soglosovaniya (Kadry)").IsLoaded Then
+    User = Forms![Interface_Soglosovaniya (Kadry)].Controls![Label_43].Caption
+Else
+    User = Forms![Interface_Zayavok_Otdeleniya].Controls![Label_43].Caption
+End If
+Dim db As Database
+Dim rs As DAO.Recordset
+Dim Email As String
+Set db = DBEngine.Workspaces(0).Databases(0)
+SQL = "SELECT [EmailState],[RDKBEMail] FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users WHERE  Username = " & Chr(39) & User & Chr(39)
+Set rs = db.OpenRecordset(SQL)
+rs.MoveFirst
+If EmailState = True Then EmailState = rs.Fields(0)
+If EmailState = True And Gagatochka = False Then
+    Dim Bora As Boolean
+    Email = rs.Fields(1)
+    Dim TypeOfPropusk As String
+    TypeOfPropusk = Left(ScrollBar1.Value, 1) & Left(TypePropuskaBar.Value, 1)
+    Bora = MakeTheLetter(TypeOfPropusk, listBox_1.Value, Email, User, False)
+    If Bora = True Then Call EmailRun
+End If
+'Call CheckNomer_2
+Call IzmeneniyaFiltra
+If UserCheblonsNames.ListIndex = 0 Then
+    Call AvtoZapolnenie
+Else
+    Call UserCheblonsNames_AfterUpdate
+End If
+End If
+Else
+    i = MsgBox("Закройте все документы Word, плиз", vbCritical)
+End If
+Else
+    i = MsgBox("Внесите хоть одно значение в списки", vbCritical)
+End If
+Call ReadWriteDebug("Форма:MainDatabase***Процедура:BButton_Click***Знач:")
+End Sub
+Private Sub CheckChildrens()
+    On Error Resume Next:
+    ChildrenFIO.RowSource = ""
+    ChildrenVozrast.RowSource = ""
+    ChildrenTAB.RowSource = ""
+    Childrens.ForeColor = vbBlack
+    DoCmd.Close acForm, "ChildrenForm"
+End Sub
+Private Sub CheckByro(ByRef Byro As Integer)
+On Error GoTo Vah:
+If Forms![Interface_Zayavok_Otdeleniya].Controls![Label_18].Caption = "Бюро пропусков" Then
+    Byro = 1
+End If
+Vah:
+Call ReadWriteDebug("Форма:MainDatabase***Процедура:CheckByro***Знач:")
+End Sub
+Private Sub CheckNomer_2()
+    Dim vyborRS As Integer
+    Dim Dobavka As String
+    Dim SQLSTAR As String
+    Dim b As Integer
+    On Error GoTo EraHand:
+    UpdateNumer = ChangeInScrollBar
+    Select Case Left(NumZayavkiField, 2)
+        Case "РП"
+            vyborRS = 1
+        Case "ВП"
+            vyborRS = 2
+        Case "ПП"
+            vyborRS = 3
+        Case "РТ"
+            vyborRS = 4
+        Case "ВТ"
+            vyborRS = 5
+        Case "ПТ"
+            vyborRS = 6
+    End Select
+    Dim db1 As Database
+    Dim rs1 As DAO.Recordset
+    Set db1 = DBEngine.Workspaces(0).Databases(0)
+    Set rs1 = db1.OpenRecordset(UpdateNumer)
+    Dim A As Integer
+    rs1.MoveFirst
+    Do While (Not rs1.EOF)
+        A = Int(rs1.Fields(0))
+    rs1.MoveNext
+    Loop
+    SQLSTAR = "SELECT * FROM TableTheSystem"
+    Set rs1 = db1.OpenRecordset(SQLSTAR)
+    rs1.MoveFirst
+    Dobavka = Int(rs1.Fields(vyborRS))
+    A = A + Dobavka
+    b = Int(Mid(NumZayavkiField.Value, 3))
+    NumZayavkiField.Value = Left(NumZayavkiField.Value, 2) & A
+    If A <> b Then
+        SQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase SET Numer_Of_Zayavku = " & "'" & NumZayavkiField.Value & "' WHERE Numer_Of_Zayavku = '" & Left(NumZayavkiField.Value, 2) & b & "'" & " AND [№ Компьютера] = " & "'" & ComputerName & "';"
+        'strSQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase SET Kadry = 0, State = 'в обработке(Кад)' WHERE Numer_Of_Zayavku = " & "'" & NumZayavkiField.Value & "';"
+        CurrentDb.Execute SQL
+    End If
+    Call ReadWriteDebug("Форма:MainDatabase***Процедура:CheckNomer_2***Знач:")
+    Exit Sub
+EraHand:
+    MsgBox Err.Description
+    Call ReadWriteLog(Err.Description, "CheckNomer_2(MainDatabase)")
+End Sub
+Private Function MakeTheLetter(ByRef TypeOfprop As String, ByRef Otd As String, ByRef Email As String, ByRef User As String, ByRef Rekurs As Boolean) As Boolean
+    On Error GoTo ErHandler:
+    Set fs = CreateObject("Scripting.FileSystemObject")
+    Set A = fs.CreateTextFile(Environ("HOMEDRIVE") & Environ("HOMEPATH") & "\SendMail\Message.txt", True)
+    A.WriteLine ("From: " & Email & vbNewLine & "To: " & "propusk@rdkb.ru" & vbNewLine & "Subject: ZvkiN:" & TypeOfprop & " " & Otd & " Новая заявка!")
+    A.Close
+    Call ReadWriteDebug("Форма:MainDatabase***Процедура:MakeTheLetter***Знач:")
+    MakeTheLetter = True
+    Exit Function
+ErHandler:
+    If Err.Number = 76 Then
+        If Rekurs = False Then
+            Call CopySendMailFolder
+            MakeTheLetter = MakeTheLetter(TypeOfprop, Otd, Email, User, True)
+            Exit Function
+        End If
+        i = MsgBox("Невозможно отправить уведомление по почте о создании заявки! Похоже на вашем компьютере не установлен или установлен неправильно почтовый клиент SendMail! Обратитесь в компьютерную службу для решения данной проблемы! (Процедура отправки писем пока отключается)", vbCritical)
+    Else
+        i = MsgBox("Ошибка отправки письма:" & vbNewLine & Err.Description & vbNewLine & "Процедура отправки писем пока отключается)", vbCritical)
+    End If
+    SQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users SET EmailState = False WHERE Username = '" & User & "';"
+    CurrentDb.Execute SQL
+    MakeTheLetter = False
+End Function
+Public Sub CopySendMailFolder()
+    On Error GoTo Ups:
+    Dim Ini As String
+    Ini = Environ("HOMEDRIVE") & Environ("HOMEPATH") & "\SendMail"
+    Dim fso
+    Set fso = CreateObject("scripting.filesystemobject"):  fso.CopyFolder CurrentProject.Path & "\SendMail", Ini
+    Dim SQL As String
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    SQL = "SELECT [RDKBEMail],[EMailPassword] FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users WHERE  Username = " & Chr(39) & Form_Vhod.VyborOtdeleniya.Value & Chr(39) & ";"
+    Set rs = db.OpenRecordset(SQL)
+    Call IniFileName(Ini & "\sendmail.ini", rs.Fields(0), rs.Fields(1))
+Ups:
+    'MsgBox Err.Description
+End Sub
+Private Sub EmailRun()
+    Dim WshShell As Object
+    Set WshShell = CreateObject("WScript.Shell")
+    Dim Path As String
+    Path = Environ("HOMEDRIVE") & Environ("HOMEPATH") & "\SendMail\Send!.bat"
+    WshShell.Run Chr(34) & Path & Chr(34), 0
+    Call ReadWriteDebug("Форма:MainDatabase***Процедура:EmailRun***Знач:")
+End Sub
+Private Sub Childrens_Click()
+    DoCmd.OpenForm "ChildrenForm"
+End Sub
+Private Sub Contact_AfterUpdate()
+    Call CheckReds(Contact)
+End Sub
+Private Sub Contact_Pos_AfterUpdate()
+    Call CheckReds(Contact_Pos)
+End Sub
+Private Sub DelTheCheblon_Click()
+    If UserCheblonsNames.ListIndex <> 0 Then
+        Dim Gra As Integer
+        Gra = MsgBox("Вы действительно хотите удалить шаблон - " & Chr(34) & UserCheblonsNames.ItemData(UserCheblonsNames.ListIndex) & Chr(34) & "?", vbYesNo)
+        If Gra = 6 Then
+            Dim CodeName As Integer
+            CodeName = GetCodeUser
+            SQL = "DELETE * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].UsersCheblons WHERE [Cheblon_Name] = '" & UserCheblonsNames.Value & "' AND Код = " & CodeName & ";"
+            CurrentDb.Execute SQL
+            i = MsgBox("Шаблон удален", vbMsgBoxHelpButton)
+            Call ReadWriteDebug("Форма:MainDatabase***Процедура:DelTheCheblon_Click***Знач: Удален Шаблон - " & UserCheblonsNames.Value)
+            Call UpdateCheblonSpis(CodeName)
+            UserCheblonsNames.Value = UserCheblonsNames.ItemData(0)
+            TypePropuskaBar.SetFocus
+            DelTheCheblon.Enabled = False
+        End If
+    Else
+        i = MsgBox("Пустой Шаблон Удалить Невозможно", vbCritical)
+    End If
+End Sub
+Private Sub Form_Activate()
+    If Osnovanie.Caption = True Then
+        Call Form_Load
+        Call RedToWhite(Me.Name)
+    End If
+End Sub
+Private Sub Form_Timer()
+    On Error Resume Next:
+    If CurrentProject.AllForms("Interface_Zayavok_Otdeleniya").IsLoaded And Not (CurrentProject.AllForms("Spisok_Vvoda").IsLoaded) And listBox_1.Enabled = False Then
+        Form_Vhod.TimerInterval = 17000
+        Form_Interface_Zayavok_Otdeleniya.TimerInterval = 10000
+        Me.TimerInterval = 0
+    End If
+End Sub
+Private Sub NumerAuto_AfterUpdate()
+    Call CheckReds(NumerAuto)
+End Sub
+Private Sub PoleDlyaPostoyan_AfterUpdate()
+    Call CheckReds(PoleDlyaPostoyan)
+End Sub
+Private Sub SaveCheblon_Click()
+    Dim Pa As Boolean
+    Pa = CheckFields_2("MainDatabase")
+    If Pa = True Then
+        Dim SQL As String
+        Dim db As Database
+        Dim rs As DAO.Recordset
+        Dim CodeName As Integer
+        Dim CheblonName As String
+        Dim ChisloCheblon As Integer
+        Set db = DBEngine.Workspaces(0).Databases(0)
+        CodeName = GetCodeUser
+        SQL = "SELECT COUNT(*) FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].UsersCheblons WHERE Код = " & CodeName
+        Set rs = db.OpenRecordset(SQL)
+        ChisloCheblon = rs.Fields(0)
+        Dim Basta As Boolean
+            Dim Perezapis As Boolean
+            Basta = False
+            While Basta = False
+                CheblonName = InputBox("Задайте имя шаблона", "Имя шаблона")
+                CheblonName = Replace(CheblonName, "'", "")
+                CheblonName = Replace(CheblonName, "`", "")
+                If IsNull(CheblonName) Or CheblonName = "" Then
+                    Dim Gra As Integer
+                    Gra = MsgBox("Отменить?(Если вы вели пустое значение это равноценно отмене)", vbYesNo, "Отмена")
+                    If Gra = 6 Then
+                        Basta = True
+                        Perezapis = False
+                    Else
+                        Basta = False
+                    End If
+                Else
+                    SQL = "SELECT [Cheblon_Name] FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].UsersCheblons WHERE  Код = " & CodeName & " AND Cheblon_Name = '" & CheblonName & "'"
+                    Set rs = db.OpenRecordset(SQL)
+                    If rs.RecordCount = 0 Then
+                        Basta = True
+                    Else
+                        Gra = MsgBox("Шаблон с таким именем уже существует. Изменить его?", vbYesNo, "Перезаписать?")
+                        If Gra = 6 Then
+                            Basta = True
+                            Perezapis = True
+                        Else
+                            Basta = False
+                        End If
+                    End If
+                End If
+            Wend
+        If Not IsNull(CheblonName) And CheblonName <> "" Then
+            If ChisloCheblon < 14 Or Perezapis = True Then
+                Dim ZnachenieImen As String
+                Dim ZnachenieNumerov As String
+                Dim ZnacheniePosContact As String
+                Dim ZnachenieDeti As String
+                Dim TableState As Boolean
+                On Error Resume Next:
+                If NeskolkoPosetiteley.Value = True Then
+                    TableState = True
+                    ZnachenieImen = CStr(Names.ItemData(0))
+                    ZnachenieNumerov = CStr(Numers.ItemData(0))
+                    ZnacheniePosContact = CStr(Contacts.ItemData(0))
+                    ZnachenieDeti = CStr(Childreee.ItemData(0))
+                If Names.ListCount > 0 Then
+                    For i = 1 To Names.ListCount - 1
+                        ZnachenieImen = ZnachenieImen & vbNewLine & CStr(Names.ItemData(i))
+                        ZnachenieNumerov = ZnachenieNumerov & vbNewLine & CStr(Numers.ItemData(i))
+                        ZnacheniePosContact = ZnacheniePosContact & vbNewLine & CStr(Contacts.ItemData(i))
+                        ZnachenieDeti = ZnachenieDeti & vbNewLine & CStr(Childreee.ItemData(i))
+                    Next i
+                End If
+                Else
+                    TableState = False
+                    ZnachenieImen = FIOVodyly.Value
+                     If PasportType.Value = "Паспорт РФ" And Not (IsNull(Serial_Num.Value) Or Serial_Num.Value = "") Then
+                        ZnachenieNumerov = Left(Serial_Num.Value, 4) & " " & Right(Serial_Num.Value, 6)
+                     Else
+                        ZnachenieNumerov = Serial_Num.Value
+                     End If
+                    ZnacheniePosContact = Contact_Pos.Value
+                End If
+                Dim Padla(14) As String
+                Padla(0) = FirstName.Value
+                Padla(1) = LastName.Value
+                Padla(2) = Otchestvo.Value
+                Padla(3) = Contact.Value
+                Padla(4) = ReasonEnterance.Value
+                Padla(5) = FIOSoprovod.Value
+                Padla(6) = Auto.Value
+                Padla(7) = NumerAuto.Value
+                Padla(8) = Comment.Value
+                Padla(9) = Gruz.Value
+                Padla(10) = ZnachenieImen
+                Padla(11) = ZnachenieNumerov
+                Padla(12) = ZnacheniePosContact
+                Padla(13) = ZnachenieDeti
+                For i = 0 To 13
+                    If IsNull(Padla(i)) Then
+                        Padla(i) = ""
+                    End If
+                Next i
+                If Perezapis = False Then
+                    SQL = "INSERT INTO [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].UsersCheblons " _
+                    & "([Фамилия],[Имя],[Отчество],[Контактная информация],[Основания проезда],[ФИО Водителя]," _
+                    & "[ФИО Сопровождающего],[Серия и номер документа Удостоверяющего личность],[Марка автомобиля]," _
+                    & "[Государственный номер],[Коментарии],[Отделение],[Type_Zayavki],[Vyd_Zayavki],[Gruz],[TableStat],[PosContact]," _
+                    & "[Cheblon_Name],[Код],[ChildrensState]) VALUES " & "('" & Padla(0) & "' " & ",'" & Padla(1) & "' " & " ,'" _
+                    & Padla(2) & "' " & " ,'" & Padla(3) & "' " & " ,'" _
+                    & Padla(4) & "' " & " ,'" & Padla(10) & "' " & " ,'" & Padla(5) & "' " & " ,'" _
+                    & Padla(11) & "' " & " ,'" & Padla(6) & "' " & " ,'" & Padla(7) & "' " & " ,'" _
+                    & Padla(8) & "' " & " ,'" & listBox_1.Value & "' " & " ,'" & TypePropuskaBar.Value & "' " & " ,'" _
+                    & ScrollBar1.Value & "' " & " ,'" & Padla(9) & "' " & " ,'" & TableState & "' ,'" _
+                    & Padla(12) & "' " & " ,'" & CheblonName & "' " & " ,'" & CodeName & "' " & " ,'" & Padla(13) & "');"
+                    CurrentDb.Execute SQL
+                    Call ReadWriteDebug("Форма:MainDatabase***Процедура:SaveCheblon_Click***Знач: Добавлен Шаблон - " & CheblonName)
+                    i = MsgBox("Шаблон Успешно Добавлен", vbInformation)
+                Else
+                    SQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase SET Kadry = 0, State = 'в обработке(Кад)' WHERE Numer_Of_Zayavku = " & "'" & NumZayavkiField.Value & "';"
+                    SQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].UsersCheblons " _
+                    & "SET [Фамилия] = '" & Padla(0) & "', [Имя] = '" & Padla(1) & "', [Отчество] = '" & Padla(2) & "', " _
+                    & "[Контактная информация] = '" & Padla(3) & "', [Основания проезда] = '" & Padla(4) & "', " _
+                    & "[ФИО Водителя] = '" & Padla(10) & "', [ФИО Сопровождающего] = '" & Padla(5) & "', [Серия и номер документа Удостоверяющего личность] = '" _
+                    & Padla(11) & "', [Марка автомобиля] = '" & Padla(6) & "', [Государственный номер] = '" & Padla(7) & "', " _
+                    & "[Коментарии] = '" & Padla(8) & "', [Отделение] = '" & listBox_1.Value & "', [Type_Zayavki] = '" & TypePropuskaBar.Value & _
+                    "', [Vyd_Zayavki] = '" & ScrollBar1.Value & "', [Gruz] = '" & Padla(9) & "', [TableStat] = '" & TableState & _
+                    "', [PosContact] = '" & Padla(12) & "', [ChildrensState] = '" & Padla(13) & "' WHERE [Cheblon_Name] = '" & CheblonName & "' AND Код = " & CodeName & ";"
+                    CurrentDb.Execute SQL
+                    Call ReadWriteDebug("Форма:MainDatabase***Процедура:SaveCheblon_Click***Знач: Обновлен Шаблон - " & CheblonName)
+                    i = MsgBox("Шаблон Успешно Обновлен", vbInformation)
+                End If
+                Call UpdateCheblonSpis(CodeName)
+            Else
+                i = MsgBox("Больше 14 Шаблонов добавить нельзя", vbCritical)
+            End If
+        End If
+    End If
+End Sub
+Private Sub TextField1_AfterUpdate()
+    Call CheckReds(TextField1)
+    If CurrentProject.AllForms("Interface_Zayavok_Otdeleniya").IsLoaded And listBox_1.Enabled = False Then
+        Form_Interface_Zayavok_Otdeleniya.TimerInterval = 0
+        Form_Vhod.TimerCount.Caption = "0"
+    End If
+End Sub
+Private Sub UserCheblonsNames_AfterUpdate()
+    If Names.ListCount > 0 Then
+        For i = 0 To Names.ListCount - 1
+            Names.RemoveItem 0
+            Contacts.RemoveItem 0
+            Numers.RemoveItem 0
+        Next i
+    End If
+    For Each cntrl In Me.Controls
+        If TypeOf cntrl Is TextBox Then
+            If cntrl.Enabled = True And cntrl.BorderColor <> vbBlack Then
+                cntrl.Value = ""
+            End If
+        End If
+    Next cntrl
+    If UserCheblonsNames.Value = "" Or IsNull(UserCheblonsNames.Value) Then
+        UserCheblonsNames.Value = UserCheblonsNames.ItemData(0)
+    End If
+    If UserCheblonsNames.Value = UserCheblonsNames.ItemData(0) Then
+        DelTheCheblon.Enabled = False
+        Call IzmeneniyaFiltra
+        Call AvtoZapolnenie
+    Else
+        DelTheCheblon.Enabled = True
+        Dim SQL As String
+        Dim db As Database
+        Dim rs As DAO.Recordset
+        Set db = DBEngine.Workspaces(0).Databases(0)
+        Dim CodeName As Integer
+        CodeName = GetCodeUser
+        SQL = "SELECT * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].UsersCheblons WHERE  Код = " & CodeName & " AND Cheblon_Name = '" & UserCheblonsNames.Value & "'"
+        Set rs = db.OpenRecordset(SQL)
+        TypePropuskaBar.Value = rs.Fields(13)
+        ScrollBar1.Value = rs.Fields(14)
+        Call TypePropuskaBar_Change
+        Call ScrollBar1_Change
+        Call IzmeneniyaFiltra
+        FirstName.Value = rs.Fields(1)
+        LastName.Value = rs.Fields(2)
+        Otchestvo.Value = rs.Fields(3)
+        If Len(rs.Fields(4)) > 3 Then
+            TypeTelephoneNumber.Value = TypeTelephoneNumber.ItemData(0)
+        Else
+            TypeTelephoneNumber.Value = TypeTelephoneNumber.ItemData(1)
+        End If
+        Contact.Value = rs.Fields(4)
+        ReasonEnterance.Value = rs.Fields(5)
+        If rs.Fields(16) = True Then
+            Osnovanie_Spis.Caption = True
+            NeskolkoPosetiteley.Value = True
+            Call NeskolkoPosetiteley_Click
+            Dim Imena() As String
+            Dim Nomeras() As String
+            Dim Telephonas() As String
+            Dim Deties() As String
+            Imena() = Split(rs.Fields(6), Chr(10))
+            Nomeras() = Split(rs.Fields(8), Chr(10))
+            Telephonas() = Split(rs.Fields(17), Chr(10))
+            Deties() = Split(rs.Fields(20), Chr(10))
+            For i = 1 To Names.ListCount
+                Names.RemoveItem 0
+                Contacts.RemoveItem 0
+                Numers.RemoveItem 0
+                Childreee.RemoveItem 0
+            Next i
+            For i = 0 To UBound(Imena)
+                Names.AddItem Imena(i)
+                Contacts.AddItem Telephonas(i)
+                Numers.AddItem Nomeras(i)
+                Childreee.AddItem Deties(i)
+            Next i
+            FIOVodyly.Value = "<Таблица>"
+            Serial_Num.Value = "<Таблица>"
+            Contact_Pos.Value = "<Таблица>"
+        Else
+            Osnovanie_Spis.Caption = False
+            If NeskolkoPosetiteley.Value = True Then
+                NeskolkoPosetiteley.Value = False
+                Call NeskolkoPosetiteley_Click
+            End If
+            FIOVodyly.Value = rs.Fields(6)
+            Contact_Pos.Value = rs.Fields(17)
+            If rs.Fields(8) Like "#### ######" Or IsNull(rs.Fields(8)) Or rs.Fields(8) = "" Then
+                PasportType.Value = PasportType.ItemData(0)
+                Serial_Num.InputMask = "0000 000000"
+            Else
+                PasportType.Value = PasportType.ItemData(1)
+                Serial_Num.InputMask = "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+            End If
+            Serial_Num.Value = rs.Fields(8)
+        End If
+        FIOSoprovod.Value = rs.Fields(7)
+        Auto.Value = rs.Fields(9)
+        If Not IsNull(rs.Fields(10)) And WhatCountry.Enabled = True Then
+            If Not (rs.Fields(10) Like "?###[a-z][a-z]##*" Or rs.Fields(10) Like "?###[а-я][а-я]##*") Then
+                WhatCountry.Value = WhatCountry.ItemData(1)
+                NumerAuto.InputMask = "CCCCCCCCCCCCCCC"
+            Else
+                WhatCountry.Value = WhatCountry.ItemData(0)
+                NumerAuto.InputMask = "<A>000<LL>\-009;;"
+            End If
+        End If
+        NumerAuto.Value = rs.Fields(10)
+        Comment.Value = rs.Fields(11)
+        Gruz.Value = rs.Fields(15)
+        If listBox_1.Enabled = True Then
+            listBox_1.Value = rs.Fields(12)
+        End If
+    End If
+    Call RedToWhite(Me.Name)
+    Call ReadWriteDebug("Форма:MainDatabase***Процедура:UserCheblonsNames_AfterUpdate***Знач: " & UserCheblonsNames.Value)
+End Sub
+Private Function GetCodeUser() As Integer
+    Dim SQL As String
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Dim User As String
+    If CurrentProject.AllForms("Interface_Soglosovaniya").IsLoaded Then
+        User = Forms![Interface_Soglosovaniya].Controls![Label_43].Caption
+    ElseIf CurrentProject.AllForms("Interface_Soglosovaniya (Kadry)").IsLoaded Then
+        User = Forms![Interface_Soglosovaniya (Kadry)].Controls![Label_43].Caption
+    Else
+        User = Forms![Interface_Zayavok_Otdeleniya].Controls![Label_43].Caption
+    End If
+    SQL = "SELECT [Код] FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users WHERE  Username = " & Chr(39) & User & Chr(39)
+    Set rs = db.OpenRecordset(SQL)
+    GetCodeUser = Int(rs.Fields(0))
+End Function
+Private Sub UpdateCheblonSpis(ByRef UserCode As Integer)
+    Dim SQL As String
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    SQL = "SELECT [Cheblon_Name] FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].UsersCheblons WHERE Код = " & UserCode
+    Set rs = db.OpenRecordset(SQL)
+    UserCheblonsNames.RowSource = ""
+    UserCheblonsNames.AddItem "Пустой"
+    Do While (Not rs.EOF)
+        UserCheblonsNames.AddItem rs.Fields(0)
+    rs.MoveNext
+    Loop
+End Sub
+Private Sub Exit_Button_Click()
+    DoCmd.Close acForm, "MainDatabase"
+End Sub
+Private Sub Form_Close()
+    On Error Resume Next:
+        DoCmd.Close acForm, "Spisok_VVoda"
+        DoCmd.Close acForm, "ChildrenForm"
+        If CurrentProject.AllForms("Interface_Zayavok_Otdeleniya").IsLoaded And listBox_1.Enabled = False Then
+            Form_Interface_Zayavok_Otdeleniya.TimerInterval = 10000
+        End If
+End Sub
+Private Sub FirstName_AfterUpdate()
+    Call Changes(FirstName)
+    On Error Resume Next:
+    Call TolkaBykvy(FirstName.Value, FirstName)
+End Sub
+Private Sub LastName_AfterUpdate()
+    Call Changes(LastName)
+    On Error Resume Next:
+    Call TolkaBykvy(LastName.Value, LastName)
+End Sub
+Private Sub listBox_1_AfterUpdate()
+    If listBox_1.Value = "" Or IsNull(listBox_1.Value) Then
+        listBox_1.Value = "Телемедицинский центр"
+    End If
+    Call CoprusFloor
+End Sub
+Public Sub CoprusFloor()
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Dim SQL As String
+    SQL = "SELECT * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya WHERE otd = " & "'" & listBox_1.Value & "';"
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Set rs = db.OpenRecordset(SQL)
+    On Error GoTo YuraHandler:
+    rs.MoveFirst
+    Corpus.Value = rs.Fields(2)
+    Floor.Value = rs.Fields(3)
+    Call ReadWriteDebug("Форма:MainDatabase***Процедура:CoprusFloor***Знач:")
+    Exit Sub
+YuraHandler:
+    Call ReadWriteLog(Err.Description, "CoprusFloor(MainDatabase)")
+    Corpus.Value = ""
+    Floor.Value = ""
+End Sub
+Private Sub Otchestvo_AfterUpdate()
+    Call Changes(Otchestvo)
+    On Error Resume Next:
+    Call TolkaBykvy(Otchestvo.Value, Otchestvo)
+End Sub
+Private Sub ReasonEnterance_AfterUpdate()
+    Call Changes(ReasonEnterance)
+End Sub
+Private Sub FIOVodyly_AfterUpdate()
+    Call Changes(FIOVodyly)
+    On Error Resume Next:
+    Call TolkaBykvy(FIOVodyly.Value, FIOVodyly)
+End Sub
+Private Sub FIOSoprovod_AfterUpdate()
+    Call Changes(FIOSoprovod)
+    On Error Resume Next:
+    Call TolkaBykvy(FIOSoprovod.Value, FIOSoprovod)
+    Call SimvolsCount(FIOSoprovod, FIOSoprovod.Value, 80, True)
+    'If IsNull(FIOSoprovod.Value) Then FIOSoprovod.BorderColor = RGB(192, 192, 192)
+End Sub
+Private Sub ReasonGet_AfterUpdate()
+    If TypePropuskaBar.Value = "Пеший" And ReasonGet.ListIndex < 2 Then
+        PoleDlyaPostoyan.Enabled = True
+    ElseIf TypePropuskaBar.Value = "Пеший" Then
+        PoleDlyaPostoyan.Enabled = False
+    End If
+    Call CheckReds(ReasonGet)
+End Sub
+Private Sub RepeatPrint_Click()
+    Dim SQL As String
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Dim Date1 As String
+    Dim Date2 As String
+    SQL = "SELECT [Фамилия],[Имя],[Отчество],[Контактная информация],[First_Day],[ФИО Водителя],[Серия и номер документа Удостоверяющего личность],[Отделение],[Дата_конца_действия],[PosContact],[Основания проезда] FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase WHERE Numer_Of_Zayavku =  '" & NLast.Caption & "';"
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Set rs = db.OpenRecordset(SQL)
+    rs.MoveFirst
+    Date1 = rs.Fields(4)
+    If rs.Fields(8) = "" Or IsNull(rs.Fields(8)) Then
+        Date2 = Date1
+    Else
+        Date2 = rs.Fields(8)
+    End If
+    Call PrintModule.Printer(NLast.Caption, Names, rs.Fields(5), rs.Fields(6), rs.Fields(9), rs.Fields(10), rs.Fields(0), rs.Fields(1), rs.Fields(2), rs.Fields(3), Date1, rs.Fields(7), Date2, " ", " ", " ", True, Corpus.Value, Floor.Value, False, 0, 0, 0)
+    Call ReadWriteDebug("Форма:MainDatabase***Процедура:RepeatPrint***Знач:")
+End Sub
+Private Sub ScrollBar1_AfterUpdate()
+    If IsNull(ScrollBar1.Value) Then
+        ScrollBar1.Value = "Разовый"
+        Call ScrollBar1_Change
+    End If
+End Sub
+Private Sub Serial_Num_AfterUpdate()
+    Call Changes(Serial_Num)
+End Sub
+Private Sub Auto_AfterUpdate()
+    Call Changes(Auto)
+    On Error Resume Next:
+    Call SimvolsCount(Auto, Auto.Value, 100, False)
+End Sub
+Private Sub Comment_AfterUpdate()
+    Call Changes(Comment)
+    On Error Resume Next:
+    Call SimvolsCount(Comment, Comment.Value, 200, False)
+    'If IsNull(Comment.Value) Then Comment.BorderColor = RGB(192, 192, 192)
+End Sub
+Private Sub Gruz_AfterUpdate()
+    Call Changes(Gruz)
+    On Error Resume Next:
+    Call SimvolsCount(Gruz, Gruz.Value, 255, False)
+    'If IsNull(Gruz.Value) Then Gruz.BorderColor = RGB(192, 192, 192)
+End Sub
+Private Sub Changes(Korobka As Object)
+    On Error Resume Next:
+    Korobka.Value = Replace(Korobka.Value, "'", "")
+    Korobka.Value = Replace(Korobka.Value, "`", "")
+    If Korobka.Value <> "" And Korobka.BackColor = RGB(240, 101, 130) Then Korobka.BackColor = vbWhite
+    Call ReadWriteDebug("Форма:MainDatabase***Процедура:проверка на ошибки в тексте(Changes). Объект: " & Korobka.Name & "***Знач: " & Korobka.Value)
+End Sub
+Private Sub SimvolsCount(ObjT As Object, ValueT As String, Maximum As Integer, BukvaCheck As Boolean)
+    If Len(ValueT) > Maximum And (BukvaCheck = False Or ObjT.BackColor <> RGB(240, 101, 130)) Then
+        i = MsgBox("Число символов не должно быть больше " & Maximum, vbCritical)
+        ObjT.BackColor = RGB(240, 101, 130)
+        Call ReadWriteDebug("Форма:MainDatabase***Процедура:SimvolsCount. Объект: " & ObjT.Name & "***Знач: красное поле")
+    ElseIf Len(ValueT) <= Maximum And (BukvaCheck = False Or ObjT.BackColor <> RGB(240, 101, 130)) Then
+        ObjT.BackColor = vbWhite
+        Call ReadWriteDebug("Форма:MainDatabase***Процедура:SimvolsCount. Объект: " & ObjT.Name & "***Знач: белое поле")
+    Else
+    End If
+End Sub
+Private Sub NeskolkoPosetiteley_Click()
+    If NeskolkoPosetiteley = True Then
+        FIOVodyly.Enabled = False
+        Serial_Num.Enabled = False
+        Contact_Pos.Enabled = False
+        SheetNames.Enabled = True
+        SheetNumers.Enabled = True
+        SheetTelephones.Enabled = True
+        'AutoPrintFlag.Visible = False
+        'AutoPrintFlag.Enabled = False
+        If Names.ListCount > 0 Then
+            FIOVodyly.Value = "<Таблица>"
+            Serial_Num.Value = "<Таблица>"
+            Contact_Pos.Value = "<Таблица>"
+        End If
+    Else
+        Dim Bels As Integer
+        If Names.ListCount > 0 Then
+            Bels = MsgBox("Вы собираетесь отменить ввод нескольких посетителей. Все посетители, которых вы ввели - будут удалены. Подтвердить действие?", vbYesNo)
+        Else
+            Bels = 6
+        End If
+        If Bels = 6 Then
+            Call ZakrytForm
+            On Error GoTo Pryzhok:
+            If CurrentProject.AllForms("Interface_Zayavok_Otdeleniya").IsLoaded Then
+                If Forms![Interface_Zayavok_Otdeleniya].Controls![Label_18].Caption = "Бюро пропусков" Then
+                    AutoPrintFlag.Visible = True
+                    AutoPrintFlag.Enabled = True
+                End If
+            End If
+Pryzhok:
+            FIOVodyly.Enabled = True
+            Serial_Num.Enabled = True
+            Contact_Pos.Enabled = True
+            FIOVodyly.Value = ""
+            Serial_Num.Value = ""
+            Contact_Pos.Value = ""
+            SheetNames.Enabled = False
+            SheetNumers.Enabled = False
+            SheetTelephones.Enabled = False
+            If (Len(Err.Description) > 0) Then
+                Call ReadWriteLog(Err.Description, "NeskolkoPosetiteley_Click(MainDatabase)")
+            End If
+        Else
+            NeskolkoPosetiteley.Value = True
+        End If
+    End If
+    Call ReadWriteDebug("Форма:MainDatabase***Процедура:NeskolkoPosetiteley***Знач: " & NeskolkoPosetiteley.Value)
+End Sub
+Private Sub ZakrytForm()
+    On Error Resume Next:
+    Names.RowSource = ""
+    Contacts.RowSource = ""
+    Numers.RowSource = ""
+    Childreee.RowSource = ""
+    DoCmd.Close acForm, "Spisok_VVoda"
+    Call ReadWriteDebug("Форма:MainDatabase***Процедура:ZakrytForm***Знач:")
+End Sub
+Private Sub Form_Load()
+    Dim A As Object
+    Set A = ComputerName
+    Dim Surva As Boolean
+    A.Value = Environ$("computername")
+    Osnovanie.Caption = CStr(Zapeka)
+    Surva = CBool(Osnovanie.Caption)
+    If Surva = False Then
+        ScrollBar1.Value = "Разовый"
+        TypePropuskaBar.Value = "Пеший"
+    Else
+        ScrollBar1.Value = VydTP
+        TypePropuskaBar.Value = SetTP
+    End If
+    For i = 0 To Names.ListCount - 1
+            Names.RemoveItem 0
+            Numers.RemoveItem 0
+            Contacts.RemoveItem 0
+    Next i
+    Dim CodeName As Integer
+    CodeName = GetCodeUser
+    Call UpdateCheblonSpis(CodeName)
+    Call ScrollBar1_Change
+    Call TypePropuskaBar_Change
+    If Surva = False Then
+        Call AvtoZapolnenie
+    Else
+        Dim Uh As String
+        If CurrentProject.AllForms("Interface_Zayavok_Otdeleniya").IsLoaded Then
+            Uh = "Interface_Zayavok_Otdeleniya"
+        ElseIf CurrentProject.AllForms("Interface_Soglosovaniya").IsLoaded Then
+            Uh = "Interface_Soglosovaniya"
+        Else
+            Uh = "Interface_Soglosovaniya (Kadry)"
+        End If
+        Call OsnovZapoln(Uh)
+    End If
+    Osnovanie.Caption = False
+    If CurrentProject.AllForms("Interface_Zayavok_Otdeleniya").IsLoaded And listBox_1.Enabled = False Then
+        Form_Interface_Zayavok_Otdeleniya.TimerInterval = 0
+        Form_Vhod.TimerCount.Caption = "0"
+    Else
+        Me.TimerInterval = 0
+    End If
+    Call ReadWriteDebug("Форма:MainDatabase***Процедура:Form_Load***Знач:")
+End Sub
+Private Function Zapeka() As Boolean
+    On Error Resume Next:
+    Zapeka = Forms![Interface_Soglosovaniya].Controls![Osnovanie].Caption
+    Zapeka = Forms![Interface_Soglosovaniya (Kadry)].Controls![Osnovanie].Caption
+    Zapeka = Forms![Interface_Zayavok_Otdeleniya].Controls![Osnovanie].Caption
+End Function
+Private Function SetTP() As String
+    On Error Resume Next:
+        SetTP = Forms![Interface_Soglosovaniya].Controls![Label_1].Caption
+        SetTP = Forms![Interface_Soglosovaniya (Kadry)].Controls![Label_1].Caption
+        SetTP = Forms![Interface_Zayavok_Otdeleniya].Controls![Label_1].Caption
+End Function
+Private Function VydTP() As String
+    On Error Resume Next:
+        VydTP = Forms![Interface_Soglosovaniya].Controls![Label_13].Caption
+        VydTP = Forms![Interface_Soglosovaniya (Kadry)].Controls![Label_13].Caption
+        VydTP = Forms![Interface_Zayavok_Otdeleniya].Controls![Label_13].Caption
+End Function
+Public Sub OsnovZapoln(ByRef FormZ As String)
+    Dim Uh As Form
+    Set Uh = Forms(FormZ)
+    FirstName.Value = Uh.Controls![Label_2].Caption
+    LastName.Value = Uh.Controls![Label_3].Caption
+    Otchestvo.Value = Uh.Controls![Label_4].Caption
+    Dim Numa As Integer
+    Numa = Len(Uh.Controls![Label_7].Caption)
+    If Numa < 11 Then
+        TypeTelephoneNumber.Value = "Внутренний"
+        Contact.Value = Replace(Replace(Replace(Uh.Controls![Label_7].Caption, "(", ""), ")", ""), "-", "")
+    Else
+        TypeTelephoneNumber.Value = "Внешний"
+        Contact.InputMask = "8-(000)-000-00-00"
+        Contact.Value = Mid(Replace(Replace(Replace(Uh.Controls![Label_7].Caption, "(", ""), ")", ""), "-", ""), 2)
+    End If
+    ReasonEnterance.Value = Mid(Uh.Controls![Label_15].Caption, 23)
+    Dim IsTable As String
+    IsTable = Uh.Controls![Label_8].Caption
+    If IsTable = "<См. Таблицу>" Then
+        NeskolkoPosetiteley.Value = True
+        Call NeskolkoPosetiteley_Click
+        For i = 0 To Uh.Controls![NameNumField].ListCount - 1
+            Names.AddItem Uh.Controls![NameNumField].Column(1, i)
+            Contacts.AddItem Uh.Controls![NameNumField].Column(2, i)
+            Numers.AddItem Uh.Controls![NameNumField].Column(3, i)
+            If Uh.Controls![NameNumField].Column(0, i) = "Р" Then Childreee.AddItem 1 Else Childreee.AddItem 0
+        Next i
+        FIOVodyly.Value = "<Таблица>"
+        Serial_Num.Value = "<Таблица>"
+        Contact_Pos.Value = "<Таблица>"
+        Osnovanie_Spis.Caption = True
+    Else
+        Osnovanie_Spis.Caption = False
+        If (ScrollBar1.Value = "Разовый" Or ScrollBar1.Value = "Временный") And TypePropuskaBar.Value = "Пеший" Then
+            NeskolkoPosetiteley.Value = False
+            Call NeskolkoPosetiteley_Click
+        End If
+        FIOVodyly.Value = Uh.Controls![Label_8].Caption
+        If Not Uh.Controls![Label_9].Caption Like "#### ######" Then
+            PasportType.Value = PasportType.ItemData(1)
+            Serial_Num.InputMask = "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+        Else
+            PasportType.Value = PasportType.ItemData(0)
+            Serial_Num.InputMask = "0000 000000"
+        End If
+        Serial_Num.Value = Uh.Controls![Label_9].Caption
+        Contact_Pos.Value = Mid(Replace(Replace(Replace(Uh.Controls![Label_45].Caption, "(", ""), ")", ""), "-", ""), 2)
+    End If
+    If TypePropuskaBar.Value = "Транспортный" Then
+        If Not (Uh.Controls![Label_10].Caption = "<Пусто>" Or Uh.Controls![Label_44].Caption = "<Не заполняется>") Then FIOSoprovod.Value = Uh.Controls![Label_10].Caption
+        Auto.Value = Uh.Controls![Label_11].Caption
+        If Not (Uh.Controls![Label_12].Caption Like "?###[a-z][a-z]##*" Or Uh.Controls![Label_12].Caption Like "?###[а-я][а-я]##*") Then
+                WhatCountry.Value = WhatCountry.ItemData(1)
+                NumerAuto.InputMask = "CCCCCCCCCCCCCCC"
+            Else
+                WhatCountry.Value = WhatCountry.ItemData(0)
+                NumerAuto.InputMask = "<A>000<LL>\-009;;"
+            End If
+        NumerAuto.Value = Uh.Controls![Label_12].Caption
+        If Not (Uh.Controls![Label_44].Caption = "<Пусто>" Or Uh.Controls![Label_44].Caption = "<Не заполняется>") Then Gruz.Value = Uh.Controls![Label_44].Caption
+    End If
+    If ScrollBar1.Value <> "Постоянный" Then
+        Comment.Value = Mid(Uh.Controls![Label_14].Caption, 14)
+    Else
+        i = MsgBox("Поле Комментарии не заполнено", vbExclamation)
+    End If
+    listBox_1.Value = Uh.Controls![Label_5].Caption
+End Sub
+Private Sub AvtoZapolnenie()
+    Dim SQL As String
+    Dim ChtoEto As String
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    If CurrentProject.AllForms("Interface_Soglosovaniya").IsLoaded Then
+        ChtoEto = Forms![Interface_Soglosovaniya].Controls![Label_43].Caption
+    ElseIf CurrentProject.AllForms("Interface_Soglosovaniya (Kadry)").IsLoaded Then
+        ChtoEto = Forms![Interface_Soglosovaniya (Kadry)].Controls![Label_43].Caption
+    Else
+        ChtoEto = Forms![Interface_Zayavok_Otdeleniya].Controls![Label_43].Caption
+    End If
+    SQL = "SELECT * From [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users WHERE Username = " & "'" & ChtoEto & "'"
+    On Error Resume Next:
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Set rs = db.OpenRecordset(SQL)
+    rs.MoveFirst
+    FirstName.Value = rs.Fields(3).Value
+    LastName.Value = rs.Fields(4).Value
+    Otchestvo.Value = rs.Fields(5).Value
+    If Len(CStr(rs.Fields(6).Value)) > 5 Then
+        TypeTelephoneNumber = "Внешний"
+        Contact.InputMask = "8-(000)-000-00-00"
+    Else
+        TypeTelephoneNumber = "Внутренний"
+        Contact.InputMask = "(0-00)"
+    End If
+    Contact = rs.Fields(6).Value
+    Call ReadWriteDebug("Форма:MainDatabase***Процедура:AvtoZapolnenie***Знач:")
+    Exit Sub
+errHandler:
+    MsgBox Err.Description
+End Sub
+Private Function ChangeInScrollBar() As String
+    Dim Filter_One As String
+    Dim Filter_Two As String
+    Filter_One = ScrollBar1.Value
+    Filter_Two = TypePropuskaBar.Value
+    ChangeInScrollBar = "SELECT COUNT(*) FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].MainDatabase WHERE Type_Zayavki = " & Chr(34) & Filter_Two & Chr(34) & " " & "AND Vyd_Zayavki = " & Chr(34) & Filter_One & Chr(34)
+    Call ReadWriteDebug("Форма:MainDatabase***Процедура:ChangeInScrollBar***Знач: " & Filter_One & " " & Filter_Two)
+End Function
+Private Sub ScrollBar1_Change()
+    'On Error Resume Next
+    If TypePropuskaBar.Value = "Транспортный" Then
+        Gruz.Enabled = True
+        FIOSoprovod.Enabled = True
+    End If
+    Select Case ScrollBar1.Value
+        Case "Разовый"
+            PoleDlyaPostoyan.Enabled = False
+            PoleDlyaPostoyan.Value = ""
+            listBox_1.LimitToList = False
+            ReasonEnterance.Enabled = True
+            TextField3.Enabled = False
+            TextField2.Enabled = False
+            ReasonGet.Enabled = False
+            TextField1.Enabled = True
+            TextField2.Value = ""
+            TextField3.Value = ""
+        Case "Временный"
+            PoleDlyaPostoyan.Enabled = False
+            PoleDlyaPostoyan.Value = ""
+            listBox_1.LimitToList = False
+            ReasonEnterance.Enabled = True
+            TextField3.Enabled = True
+            TextField2.Enabled = True
+            ReasonGet.Enabled = False
+            TextField1.Enabled = False
+            TextField1.Value = ""
+        Case "Постоянный"
+            If listBox_1.Enabled = True Then
+                listBox_1.LimitToList = True
+                Dim CheckItem As Boolean
+                CheckItem = Module3.CheckForItem(listBox_1.Value, listBox_1)
+                If CheckItem = False And Osnovanie.Caption = "False" Then
+                    Dim Staroe As String
+                    If IsNull(listBox_1.Value) Then listBox_1.Value = "Пробник"
+                    Staroe = listBox_1.Value
+                    listBox_1.Value = listBox_1.ItemData(0)
+                    E = MsgBox("Значения " & Staroe & " - нет в списке отделений. Установлено значение по умолчанию из списка", vbExclamation)
+                End If
+            End If
+            ReasonGet.Enabled = True
+            TextField3.Enabled = False
+            TextField1.Enabled = False
+            TextField2.Enabled = False
+            TextField1.Value = ""
+            TextField2.Value = ""
+            TextField3.Value = ""
+            ReasonEnterance.Enabled = False
+            FIOSoprovod.Enabled = False
+            Gruz.Enabled = False
+            ReasonEnterance.Value = ""
+            FIOSoprovod.Value = ""
+            Gruz.Value = ""
+        End Select
+        If (Len(Err.Description) > 0) Then
+            'Call ReadWriteLog(Err.Description, "ScrollBar1_Change(MainDatabase)")
+        End If
+        Call IzmeneniyaFiltra
+        Call ReadWriteDebug("Форма:MainDatabase***Процедура:ScrollBar1_Change***Знач:")
+End Sub
+Private Sub IzmeneniyaFiltra()
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Dim SQLSTAR As String
+    SQLSTAR = ChangeInScrollBar
+    TypePropuskaBar.SetFocus
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Set rs = db.OpenRecordset(SQLSTAR)
+    Dim A As Integer
+    rs.MoveFirst
+    Do While (Not rs.EOF)
+      A = Int(rs.Fields(0))
+    rs.MoveNext
+    'ReasonGet.Enabled = False
+    ReasonGet.Value = ""
+    Loop
+    Dim vyborRS As Integer
+    On Error GoTo ErrHandlerI:
+    Select Case ScrollBar1.Value & TypePropuskaBar.Value
+        Case "РазовыйПеший"
+            vyborRS = 1
+            If Forms![Interface_Zayavok_Otdeleniya].Controls![Label_18].Caption = "Бюро пропусков" Then
+                AutoPrintFlag.Enabled = True
+                AutoPrintFlag.Visible = True
+                PoleDlyaPostoyan.Enabled = False
+                If NLast.Caption <> "NLast" Then
+                    RepeatPrint.Enabled = True
+                    RepeatPrint.Visible = True
+                End If
+                TextField1.Value = Date
+            End If
+        Case "ВременныйПеший"
+            vyborRS = 2
+            If Forms![Interface_Zayavok_Otdeleniya].Controls![Label_18].Caption = "Бюро пропусков" Then
+                AutoPrintFlag.Enabled = True
+                AutoPrintFlag.Visible = True
+                PoleDlyaPostoyan.Enabled = False
+                If NLast.Caption <> "NLast" Then
+                    RepeatPrint.Enabled = True
+                    RepeatPrint.Visible = True
+                End If
+            End If
+        Case "ПостоянныйПеший"
+            vyborRS = 3
+            Call SpisokPP
+            PoleDlyaPostoyanLabel.Caption = "Должность:"
+            PoleDlyaPostoyan.Enabled = False
+            AutoPrintFlag.Enabled = False
+            AutoPrintFlag.Visible = False
+            ReasonGet.RowSource = "Поступл. на работу РДКБ;Поступл. на работу (арендаторы);Замена исп/утер. пропуска;Смена фамилии/имени/отчества"
+        Case "РазовыйТранспортный"
+            vyborRS = 4
+            PoleDlyaPostoyan.Enabled = False
+            AutoPrintFlag.Enabled = False
+            AutoPrintFlag.Visible = False
+        Case "ВременныйТранспортный"
+            vyborRS = 5
+            PoleDlyaPostoyan.Enabled = False
+            AutoPrintFlag.Enabled = False
+            AutoPrintFlag.Visible = False
+        Case "ПостоянныйТранспортный"
+            vyborRS = 6
+            Call SpisokPT(PoleDlyaPostoyan)
+            PoleDlyaPostoyanLabel.Caption = "Оформление пропуска на:"
+            PoleDlyaPostoyan.Enabled = True
+            ReasonGet.RowSource = "Смена Трансп. ср-ва;Изм. Гос. Номера;Замена исп/утер. пропуска;Обновление Пр-Ка(к новому году);Получаю первый раз"
+            AutoPrintFlag.Enabled = False
+            AutoPrintFlag.Visible = False
+        End Select
+ErrHandlerI:
+    Dim Oschibka As String
+    Oschibka = CStr(Err.Description)
+    'If (Len(Err.Description) > 0) And Oschibka <> "Приложению " & Chr(39) & Chr(39) & "Microsoft Office Access" & Chr(39) & Chr(39) & " не удается найти форму " & Chr(39) & Chr(39) & "Interface_Zayavok_Otdeleniya" & Chr(39) & Chr(39) & ", указанную в выражении макроса или в программе Visual Basic." Then
+        'Call ReadWriteLog(Err.Description, "IzmeneniyaFiltra(MainDatabase)")
+    'End If
+    SQLSTAR = "SELECT * FROM TableTheSystem"
+    Set rs = db.OpenRecordset(SQLSTAR)
+    rs.MoveFirst
+    A = A + Int(rs.Fields(vyborRS))
+    NumZayavkiField.Value = Left(ScrollBar1.Value, 1) & Left(TypePropuskaBar.Value, 1) & CStr(A + 1)
+    FIOVodyly.Enabled = True
+    Contact_Pos.Enabled = True
+    Serial_Num.Enabled = True
+    If FIOVodyly.Value = "<Таблица>" Then
+            FIOVodyly.Value = ""
+            Contact_Pos.Value = ""
+            Serial_Num.Value = ""
+    End If
+    If TypePropuskaBar = "Пеший" And (ScrollBar1 = "Разовый" Or ScrollBar1 = "Временный") Then
+        NeskolkoPosetiteley.Visible = True
+        NeskolkoPosetiteley.Enabled = True
+        NeskolkoPosetiteley.Value = False
+        FlagLabel.Visible = True
+        SheetTelephones.Visible = True
+        SheetTelephones.Enabled = False
+        SheetNames.Visible = True
+        SheetNames.Enabled = False
+        SheetNumers.Visible = True
+        SheetNumers.Enabled = False
+    Else
+        NeskolkoPosetiteley.Visible = False
+        NeskolkoPosetiteley.Enabled = False
+        SheetTelephones.Visible = False
+        SheetTelephones.Enabled = False
+        FlagLabel.Visible = False
+        SheetNames.Visible = False
+        SheetNames.Enabled = False
+        SheetNumers.Visible = False
+        SheetNumers.Enabled = False
+        NeskolkoPosetiteley.Value = False
+        FIOVodyly.Enabled = True
+        Serial_Num.Enabled = True
+        Contact_Pos.Enabled = True
+    End If
+    Call ReadWriteDebug("Форма:MainDatabase***Процедура:IzmeneniyaFiltra***Знач:")
+End Sub
+Private Sub SpisokPP()
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Dim SQL As String
+    SQL = "SELECT NameOfDolzhnost FROM Dolzhnosti ORDER BY NameOfDolzhnost"
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Set rs = db.OpenRecordset(SQL)
+    PoleDlyaPostoyan.RowSource = ""
+    Do While (Not rs.EOF)
+      PoleDlyaPostoyan.AddItem rs.Fields(0)
+    rs.MoveNext
+    Loop
+    PoleDlyaPostoyan.Value = ""
+End Sub
+Function GetComputerName() As String
+Dim sBuffer As String * 255
+If GetComputerNameA(sBuffer, 255&) <> 0 Then GetComputerName = Left$(sBuffer, InStr(sBuffer, vbNullChar) - 1)
+Call ReadWriteDebug("Форма:MainDatabase***Функция:GetComputerName***Знач:")
+End Function
+Private Sub SheetNames_Click()
+    DoCmd.OpenForm "Spisok_Vvoda"
+    If CurrentProject.AllForms("Interface_Zayavok_Otdeleniya").IsLoaded And listBox_1.Enabled = False Then
+        Form_Interface_Zayavok_Otdeleniya.TimerInterval = 0
+        Form_Vhod.TimerCount.Caption = "0"
+    End If
+End Sub
+Private Sub SheetNumers_Click()
+    DoCmd.OpenForm "Spisok_Vvoda"
+    If CurrentProject.AllForms("Interface_Zayavok_Otdeleniya").IsLoaded And listBox_1.Enabled = False Then
+        Form_Interface_Zayavok_Otdeleniya.TimerInterval = 0
+        Form_Vhod.TimerCount.Caption = "0"
+    End If
+End Sub
+Private Sub SheetTelephones_Click()
+    DoCmd.OpenForm "Spisok_Vvoda"
+    If CurrentProject.AllForms("Interface_Zayavok_Otdeleniya").IsLoaded And listBox_1.Enabled = False Then
+        Form_Interface_Zayavok_Otdeleniya.TimerInterval = 0
+        Form_Vhod.TimerCount.Caption = "0"
+    End If
+End Sub
+Private Sub TextField2_AfterUpdate()
+    Dim State As Boolean
+    State = DataChecker(TextField2, TextField3)
+    If State = True Then TextField2.Value = ""
+    If CurrentProject.AllForms("Interface_Zayavok_Otdeleniya").IsLoaded And listBox_1.Enabled = False Then
+        Form_Interface_Zayavok_Otdeleniya.TimerInterval = 0
+        Form_Vhod.TimerCount.Caption = "0"
+    End If
+End Sub
+Private Sub TextField3_AfterUpdate()
+    Dim State As Boolean
+    State = DataChecker(TextField2, TextField3)
+    If State = True Then TextField3.Value = ""
+End Sub
+Private Sub TypePropuskaBar_AfterUpdate()
+    If IsNull(TypePropuskaBar.Value) Then
+        TypePropuskaBar.Value = "Пеший"
+        Call TypePropuskaBar_Change
+    End If
+End Sub
+Private Sub TypePropuskaBar_Change()
+    Select Case TypePropuskaBar.Value
+        Case "Пеший"
+            Auto.Enabled = False
+            Auto.Value = ""
+            NumerAuto.Enabled = False
+            NumerAuto.Value = ""
+            WhatCountry.Enabled = False
+            Gruz.Enabled = False
+            Gruz.Value = ""
+            FIOSoprovod.Enabled = False
+            FIOSoprovod.Value = ""
+            DriverOrPosititelLabel.Caption = "ФИО Посетителя:"
+            ReasonLabel.Caption = "Основание Посещения:"
+            ReasonGetLabel.Caption = "Причина получения пешего постоянного пропуска:"
+        Case "Транспортный"
+            Auto.Enabled = True
+            NumerAuto.Enabled = True
+            WhatCountry.Enabled = True
+            If ScrollBar1.Value <> "Постоянный" Then
+                Gruz.Enabled = True
+                FIOSoprovod.Enabled = True
+            End If
+            DriverOrPosititelLabel.Caption = "ФИО Водителя:"
+            ReasonLabel.Caption = "Основание Проезда:"
+            ReasonGetLabel.Caption = "Причина получения транспортного постоянного пропуска:"
+        End Select
+    Call IzmeneniyaFiltra
+    Call ReadWriteDebug("Форма:MainDatabase***Процедура:TypePropuskaBar_Change***Знач:")
+End Sub
+Private Sub TypeTelephoneNumber_AfterUpdate()
+    Contact.Value = ""
+    If IsNull(TypeTelephoneNumber.Value) Then
+        TypeTelephoneNumber.Value = "Внешний"
+    End If
+    If TypeTelephoneNumber.Value = "Внешний" Then
+        Contact.InputMask = "8-(000)-000-00-00"
+    Else
+        Contact.InputMask = "(0-00)"
+    End If
+    Contact.SetFocus
+    Call ReadWriteDebug("Форма:MainDatabase***Процедура:TypeTelephoneNumber_AfterUpdate***Знач: " & TypeTelephoneNumber.Value)
+End Sub
+Private Sub PasportType_AfterUpdate()
+    If IsNull(PasportType.Value) Then
+        PasportType.Value = "Паспорт РФ"
+    End If
+    Serial_Num.Value = ""
+    Call ChangeMask(Serial_Num, PasportType.Value)
+    Serial_Num.SetFocus
+    Call ReadWriteDebug("Форма:MainDatabase***Процедура:PasportType_AfterUpdate***Знач: " & PasportType.Value)
+End Sub
+Private Sub WhatCountry_AfterUpdate()
+    If IsNull(WhatCountry.Value) Then
+        WhatCountry.Value = "РФ"
+    End If
+    If WhatCountry.Value = "РФ" Then
+        NumerAuto.InputMask = "<A>000<LL>\-009;;"
+    Else
+        NumerAuto.InputMask = "CCCCCCCCCCCCCCC"
+    End If
+    Call ReadWriteDebug("Форма:MainDatabase***Процедура:WhatCountry_AfterUpdate***Знач: " & WhatCountry.Value)
+End Sub
+
+
+
+

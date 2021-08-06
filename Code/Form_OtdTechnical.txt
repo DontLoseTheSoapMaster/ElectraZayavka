@@ -1,0 +1,5 @@
+Option Compare Database
+
+Private Sub Кнопка1_Click()
+    DoCmd.Close acForm, Me.Form.Name
+End Sub

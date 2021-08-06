@@ -1,0 +1,38 @@
+Option Compare Database
+Public Sub LoadImyaNomerTelTabel(ByRef Imya As String, ByRef Nomera As String, Telephony As String, ByRef Deti As String, ByRef NameNumField As Object)
+    Dim Imena() As String
+    Dim Nomeras() As String
+    Dim Telephonas() As String
+    Imena() = Split(Imya, Chr(10))
+    Nomeras() = Split(Nomera, Chr(10))
+    Telephonas() = Split(Telephony, Chr(10))
+    NameNumField.ColumnCount = 4
+    If Deti <> "" Then
+        Dim Deties() As String
+        Deties() = Split(Deti, Chr(10))
+        Deti = "В"
+        NameNumField.ColumnWidths = "220;3600;1800;1500"
+    Else
+        NameNumField.ColumnWidths = "420;3900;1300;1500"
+    End If
+    Dim Tek As String
+    On Error GoTo ErHandler:
+    For i = 0 To UBound(Imena)
+        If Deti <> "" Then
+            If UBound(Deties) > -1 Then
+                    If IsNumeric(Deties(0)) Then
+                        If Deties(i) = 1 Then Deti = "Р" Else Deti = "В"
+                    End If
+            End If
+            Tek = Deti & ";" & Imena(i) & ";" & Telephonas(i) & ";" & Nomeras(i)
+        Else
+            Tek = CStr(i + 1) & ";" & Imena(i) & ";" & Telephonas(i) & ";" & Nomeras(i)
+        End If
+        NameNumField.AddItem Tek
+    Next i
+    Exit Sub
+ErHandler:
+    MsgBox Err.Description
+    Call ReadWriteLog(Err.Description, "LoadImyaNomerTelTabel(Inerface_Soglosovaniya)")
+End Sub
+

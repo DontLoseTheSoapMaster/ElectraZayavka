@@ -1,0 +1,1514 @@
+Option Compare Database
+Private Sub Confirm_Button_Click()
+    Dim Podschet As String
+    Dim g As Integer
+    Dim PodschetVZ As Boolean
+    g = 0
+    Podchet = 0
+    Dim Basya As String
+    For i = 0 To ListNames.ListCount - 1
+        If FIO_Label.Caption = "ФИО:" Then
+            If CBool(MistakeList.ItemData(i)) = False And CBool(MistakeList_Pasp.ItemData(i)) = False And CBool(MistakeList_Nums.ItemData(i)) = False And CStr(ListNames.ItemData(i)) <> "" And (CStr(ListNumerous.ItemData(i)) <> "" Or ChildrenState.ItemData(i) = 1) And (CStr(Contact_List.ItemData(i)) <> "" Or ChildrenState.ItemData(i) = 1) Then
+                Podchet = Podchet + 1
+                If ChildrenState.ItemData(i) = 0 Then PodschetVZ = True
+            ElseIf CStr(ListNames.ItemData(i)) = "" And CStr(ListNumerous.ItemData(i)) = "" And CStr(Contact_List.ItemData(i)) = "" Then
+            Else
+                If g = 0 Then
+                    g = MsgBox("В таблице есть незаконченные записи (заполнено ФИО, но незаполнены паспортные данные, или наоборот). Либо в поле ФИО были внесены запрещенные символы (разрешены только буквы, точка и тире). Вы хотите записи подкоректировать? Тогда нажмите да, и действие прервется. Если нажмете нет - эти записи будут игнорированы", vbYesNo, "what to do now?")
+                End If
+                If CStr(ListNames.ItemData(i)) = "" Then
+                    MistakeList.RemoveItem i
+                    MistakeList.AddItem True, i
+                End If
+                If CStr(ListNumerous.ItemData(i)) = "" And ChildrenState.ItemData(i) = 0 Then
+                    MistakeList_Pasp.RemoveItem i
+                    MistakeList_Pasp.AddItem True, i
+                End If
+                If CStr(Contact_List.ItemData(i)) = "" And ChildrenState.ItemData(i) = 0 Then
+                    MistakeList_Nums.RemoveItem i
+                    MistakeList_Nums.AddItem True, i
+                End If
+            End If
+        Else
+            If CBool(MistakeList.ItemData(i)) = False And CBool(MistakeList_Nums.ItemData(i)) = False And CStr(ListNames.ItemData(i)) <> "" And CStr(Contact_List.ItemData(i)) <> "" And PassportList.ItemData(i) > -1 Then
+                Podchet = Podchet + 1
+            ElseIf CStr(ListNames.ItemData(i)) = "" And CStr(Contact_List.ItemData(i)) = "" Then
+            Else
+                If g = 0 Then
+                    g = MsgBox("В таблице есть незаконченные записи (заполнено наим. мат. ценности, но незаполнено количество, или наоборот). Либо в поле были внесены запрещенные символы (разрешены только буквы, точка и тире). Вы хотите записи подкоректировать? Тогда нажмите да, и действие прервется. Если нажмете нет - эти записи будут игнорированы", vbYesNo, "what to do now?")
+                End If
+                If CStr(ListNames.ItemData(i)) = "" Then
+                    MistakeList.RemoveItem i
+                    MistakeList.AddItem True, i
+                End If
+                If PassportList.ItemData(i) = -1 Then
+                    MistakeList_Pasp.RemoveItem i
+                    MistakeList_Pasp.AddItem True, i
+                End If
+                If CStr(Contact_List.ItemData(i)) = "" Then
+                    MistakeList_Nums.RemoveItem i
+                    MistakeList_Nums.AddItem True, i
+                End If
+            End If
+        End If
+    Next i
+    If g = 6 Then
+        Ruskie_VPEREDI (0)
+    ElseIf Podchet > 0 Then
+        If PodschetVZ = True Or FIO_Label.Caption <> "ФИО:" Then
+            Call ZapisDannyh
+        Else
+            i = MsgBox("В списке должен быть хотя бы один взрослый!", vbCritical)
+        End If
+    Else
+        i = MsgBox("Нет ни одной записи, где было бы заполнено и ФИО, телефонный номер и паспортные данные", vbCritical)
+        Ruskie_VPEREDI (0)
+    End If
+    Call ReadWriteDebug("Форма:Spisok_Vvoda***Процедура:Confirm_Button_Click***Знач:")
+End Sub
+Private Sub ZapisDannyh()
+         For i = 0 To Forms![MainDatabase].Controls![Names].ListCount - 1
+            Forms![MainDatabase].Controls![Names].RemoveItem 0
+            Forms![MainDatabase].Controls![Numers].RemoveItem 0
+            Forms![MainDatabase].Controls![Contacts].RemoveItem 0
+            If FIO_Label.Caption = "ФИО:" Then Forms![MainDatabase].Controls![Childreee].RemoveItem 0
+        Next i
+        For i = 0 To ListNames.ListCount - 1
+            If FIO_Label.Caption = "ФИО:" Then
+                If CBool(MistakeList.ItemData(i)) = False And CBool(MistakeList_Pasp.ItemData(i)) = False And CBool(MistakeList_Nums.ItemData(i)) = False And CStr(ListNames.ItemData(i)) <> "" And (CStr(ListNumerous.ItemData(i)) <> "" Or ChildrenState.ItemData(i) = 1) And (CStr(Contact_List.ItemData(i)) <> "" Or ChildrenState.ItemData(i) = 1) Then
+                        Forms![MainDatabase].Controls![Names].AddItem CStr(ListNames.ItemData(i))
+                        Forms![MainDatabase].Controls![Numers].AddItem CStr(ListNumerous.ItemData(i))
+                        Forms![MainDatabase].Controls![Contacts].AddItem CStr(Contact_List.ItemData(i))
+                        Forms![MainDatabase].Controls![Childreee].AddItem ChildrenState.ItemData(i)
+                End If
+            Else
+                If CBool(MistakeList.ItemData(i)) = False And CBool(MistakeList_Nums.ItemData(i)) = False And CStr(ListNames.ItemData(i)) <> "" And CStr(Contact_List.ItemData(i)) <> "" Then
+                        Forms![MainDatabase].Controls![Names].AddItem CStr(ListNames.ItemData(i))
+                        Forms![MainDatabase].Controls![Numers].AddItem PasportType_1.ItemData(CInt(PassportList.ItemData(i)))
+                        Forms![MainDatabase].Controls![Contacts].AddItem CStr(Contact_List.ItemData(i))
+                End If
+            End If
+        Next i
+        If FIO_Label.Caption = "ФИО:" Then
+            Dim A As String
+            A = "<Таблица>"
+            Forms![MainDatabase].Controls![FIOVodyly].Value = A
+            Forms![MainDatabase].Controls![Serial_Num].Value = A
+            Forms![MainDatabase].Controls![Contact_Pos].Value = A
+        End If
+        Forms("MainDatabase").SetFocus
+        Call ReadWriteDebug("Форма:Spisok_Vvoda***Процедура:ZapisDannyh***Знач:")
+End Sub
+Private Sub Exit_Button_Click()
+    DoCmd.Close acForm, "Spisok_Vvoda"
+End Sub
+Private Sub FIO_1_AfterUpdate()
+    On Error Resume Next:
+    Call TolkaBykvy(FIO_1.Value, FIO_1)
+    Call UUUUH(FIO_1, ListNames, PasportType_1, (0 + 10 * (Int(PageNumber.Caption) - 1)))
+    Call ZapisCvetaPolya(FIO_1, 1, MistakeList)
+End Sub
+Private Sub FIO_2_AfterUpdate()
+    On Error Resume Next:
+    Call TolkaBykvy(FIO_2.Value, FIO_2)
+    Call UUUUH(FIO_2, ListNames, PasportType_2, (1 + 10 * (Int(PageNumber.Caption) - 1)))
+    Call ZapisCvetaPolya(FIO_2, 2, MistakeList)
+End Sub
+Private Sub FIO_3_AfterUpdate()
+    On Error Resume Next:
+    Call TolkaBykvy(FIO_3.Value, FIO_3)
+    Call UUUUH(FIO_3, ListNames, PasportType_3, (2 + 10 * (Int(PageNumber.Caption) - 1)))
+    Call ZapisCvetaPolya(FIO_3, 3, MistakeList)
+End Sub
+Private Sub FIO_4_AfterUpdate()
+    On Error Resume Next:
+    Call UUUUH(FIO_4, ListNames, PasportType_4, (3 + 10 * (Int(PageNumber.Caption) - 1)))
+    Call TolkaBykvy(FIO_4.Value, FIO_4)
+    Call ZapisCvetaPolya(FIO_4, 4, MistakeList)
+End Sub
+Private Sub FIO_5_AfterUpdate()
+    On Error Resume Next:
+    Call TolkaBykvy(FIO_5.Value, FIO_5)
+    Call UUUUH(FIO_5, ListNames, PasportType_5, (4 + 10 * (Int(PageNumber.Caption) - 1)))
+    Call ZapisCvetaPolya(FIO_5, 5, MistakeList)
+End Sub
+Private Sub FIO_6_AfterUpdate()
+    On Error Resume Next:
+    Call TolkaBykvy(FIO_6.Value, FIO_6)
+    Call UUUUH(FIO_6, ListNames, PasportType_6, (5 + 10 * (Int(PageNumber.Caption) - 1)))
+    Call ZapisCvetaPolya(FIO_6, 6, MistakeList)
+End Sub
+Private Sub FIO_7_AfterUpdate()
+    On Error Resume Next:
+    Call TolkaBykvy(FIO_7.Value, FIO_7)
+    Call UUUUH(FIO_7, ListNames, PasportType_7, (6 + 10 * (Int(PageNumber.Caption) - 1)))
+    Call ZapisCvetaPolya(FIO_7, 7, MistakeList)
+End Sub
+Private Sub FIO_8_AfterUpdate()
+    On Error Resume Next:
+    Call TolkaBykvy(FIO_8.Value, FIO_8)
+    Call UUUUH(FIO_8, ListNames, PasportType_8, (7 + 10 * (Int(PageNumber.Caption) - 1)))
+    Call ZapisCvetaPolya(FIO_8, 8, MistakeList)
+End Sub
+Private Sub FIO_9_AfterUpdate()
+    On Error Resume Next:
+    Call TolkaBykvy(FIO_9.Value, FIO_9)
+    Call UUUUH(FIO_9, ListNames, PasportType_9, (8 + 10 * (Int(PageNumber.Caption) - 1)))
+    Call ZapisCvetaPolya(FIO_9, 9, MistakeList)
+End Sub
+Private Sub FIO_10_AfterUpdate()
+    On Error Resume Next:
+    Call TolkaBykvy(FIO_10.Value, FIO_10)
+    Call UUUUH(FIO_10, ListNames, PasportType_10, (9 + 10 * (Int(PageNumber.Caption) - 1)))
+    Call ZapisCvetaPolya(FIO_10, 10, MistakeList)
+End Sub
+Private Sub ImportDatata_Click()
+    Const msoFileDialogFilePicker As Long = 3
+    Dim SQL As String
+    Dim Path As String
+    Dim fd As Object
+    Dim file As Variant
+    Dim NumerUser As Integer
+    NumerUser = Int(Forms![Vhod].Controls![SystemLabel_1].Caption)
+    Set fd = Application.FileDialog(msoFileDialogFilePicker)
+         fd.Filters.Clear
+         fd.Filters.Add "Excel", "*.xls"
+         fd.FilterIndex = 1
+         If fd.Show = False Then
+           Set dlgFile = Nothing
+           Exit Sub
+         End If
+        Path = Trim(fd.SelectedItems(1))
+        SQL = "CREATE TABLE ImportBufer" & NumerUser _
+        & "([ФИО] TEXT(80),[Контактный_Телефон] TEXT(20),[Паспортные_Данные] TEXT(30));"
+        CurrentDb.Execute SQL
+        'On Error GoTo ErHandler:
+        DoCmd.TransferSpreadsheet acImport, , "ImportBufer" & NumerUser, Path, True
+        Call AddImportItems(NumerUser)
+        DoCmd.DeleteObject acTable, "ImportBufer" & NumerUser
+        Ruskie_VPEREDI (0)
+        Call ReadWriteDebug("Форма:Spisok_Vvoda***Процедура:ImportDatata_Click***Знач:")
+        Exit Sub
+'ErHandler:
+    MsgBox Err.Description
+    DoCmd.DeleteObject acTable, "ImportBufer" & NumerUser
+End Sub
+Private Sub AddImportItems(ByRef NumerUser As Integer)
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Dim CountList As String
+    Dim SpisokCount As String
+    SQL = "SELECT COUNT(*) FROM ImportBufer" & NumerUser
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Set rs = db.OpenRecordset(SQL)
+    Dim Gra1 As Integer
+    Dim Gra2 As Integer
+    rs.MoveFirst
+    SpisokCount = rs.Fields(0)
+    Gra2 = ((1 + (SpisokCount / 10)) * 10)
+    Gra2 = Gra2 - (Gra2 Mod 10)
+    If Gra2 > ListNames.ListCount Then
+        CountList = Gra2 - ListNames.ListCount
+        For i = 1 To CountList
+            ListNames.AddItem ""
+            ListNumerous.AddItem ""
+            Contact_List.AddItem ""
+            MistakeList.AddItem False
+            MistakeList_Nums.AddItem False
+            MistakeList_Pasp.AddItem False
+            PassportList.AddItem 0
+            Vnesh.AddItem False
+            ChildrenState.AddItem 0
+        Next i
+    Else
+    For i = SpisokCount To ListNames.ListCount - 1
+            ListNames.RemoveItem i
+            ListNames.AddItem "", i
+            ListNumerous.RemoveItem i
+            ListNumerous.AddItem "", i
+            Contact_List.RemoveItem i
+            Contact_List.AddItem "", i
+            MistakeList.RemoveItem i
+            MistakeList.AddItem False, i
+            MistakeList_Nums.RemoveItem i
+            MistakeList_Nums.AddItem False, i
+            MistakeList_Pasp.RemoveItem i
+            MistakeList_Pasp.AddItem False, i
+            PassportList.RemoveItem i
+            PassportList.AddItem 0, i
+            Vnesh.RemoveItem i
+            Vnesh.AddItem False, i
+            ChildrenState.RemoveItem i
+            ChildrenState.AddItem 0, i
+    Next i
+    End If
+    PageNumber.Caption = "1"
+    Ruskie_Nazad.Enabled = False
+    Ruskie_Vpered.Enabled = True
+    NumLabel_1.Caption = "1"
+    NumLabel_2.Caption = "2"
+    NumLabel_3.Caption = "3"
+    NumLabel_4.Caption = "4"
+    NumLabel_5.Caption = "5"
+    NumLabel_6.Caption = "6"
+    NumLabel_7.Caption = "7"
+    NumLabel_8.Caption = "8"
+    NumLabel_9.Caption = "9"
+    NumLabel_10.Caption = "10"
+    Dim Numer As String
+    Dim State As Boolean
+    SQL = "SELECT * FROM ImportBufer" & NumerUser
+    Set rs = db.OpenRecordset(SQL)
+    rs.MoveFirst
+    Dim One As String
+    Dim Two As String
+    Dim State1 As Boolean
+    Dim State2 As Boolean
+    State2 = True
+    Dim Threee As String
+    For i = 0 To (SpisokCount - 1)
+        If IsNull(rs.Fields(0)) Then
+            One = ""
+        Else
+            One = rs.Fields(0)
+        End If
+        If IsNull(rs.Fields(1)) Then
+            Two = ""
+        Else
+            Two = rs.Fields(1)
+        End If
+        If IsNull(rs.Fields(2)) Then
+            Threee = ""
+        Else
+            Threee = rs.Fields(2)
+        End If
+        State = TolkaBykvy2(One)
+        State1 = IsTelNumber(Two)
+        ListNames.RemoveItem i
+        ListNames.AddItem One, i
+        If State1 = False Then Numer = Left(Two, 1) & "-(" & Mid(Two, 2, 3) & ")-" & Mid(Two, 5, 3) & "-" & Mid(Two, 8, 2) & "-" & Right(Two, 2) Else Numer = ""
+        If State = True Or State1 = True Then State2 = False
+        ListNumerous.RemoveItem i
+        ListNumerous.AddItem Threee, i
+        Contact_List.RemoveItem i
+        Contact_List.AddItem Numer, i
+        MistakeList.RemoveItem i
+        MistakeList.AddItem State, i
+        MistakeList_Nums.RemoveItem i
+        MistakeList_Nums.AddItem State, i
+        MistakeList_Pasp.RemoveItem i
+        MistakeList_Pasp.AddItem State, i
+        PassportList.RemoveItem i
+        If rs.Fields(2) Like "#### ######" Or IsNull(rs.Fields(2)) Or rs.Fields(2) = "" Then
+            PassportList.AddItem 0, i
+        Else
+            PassportList.AddItem 1, i
+        End If
+        Vnesh.RemoveItem i
+        Vnesh.AddItem False, i
+        rs.MoveNext
+    Next i
+    If State2 = False Then i = MsgBox("В Excel файле были ошибки ввода данных. ФИО будет помечены цветом, а если была ошибка номера - будет пуста строка", vbInformation)
+    Call ReadWriteDebug("Форма:Spisok_Vvoda***Процедура:AddImportItems***Знач:")
+End Sub
+Private Sub Child_1_AfterUpdate()
+    Call ChildPomen(Child_1, 1, ChildrenState, Tel_1, Num_1, MistakeList_Nums, MistakeList_Pasp)
+End Sub
+Private Sub Child_2_AfterUpdate()
+    Call ChildPomen(Child_2, 2, ChildrenState, Tel_2, Num_2, MistakeList_Nums, MistakeList_Pasp)
+End Sub
+Private Sub Child_3_AfterUpdate()
+    Call ChildPomen(Child_3, 3, ChildrenState, Tel_3, Num_3, MistakeList_Nums, MistakeList_Pasp)
+End Sub
+Private Sub Child_4_AfterUpdate()
+    Call ChildPomen(Child_4, 4, ChildrenState, Tel_4, Num_4, MistakeList_Nums, MistakeList_Pasp)
+End Sub
+Private Sub Child_5_AfterUpdate()
+    Call ChildPomen(Child_5, 5, ChildrenState, Tel_5, Num_5, MistakeList_Nums, MistakeList_Pasp)
+End Sub
+Private Sub Child_6_AfterUpdate()
+    Call ChildPomen(Child_6, 6, ChildrenState, Tel_6, Num_6, MistakeList_Nums, MistakeList_Pasp)
+End Sub
+Private Sub Child_7_AfterUpdate()
+    Call ChildPomen(Child_7, 7, ChildrenState, Tel_7, Num_7, MistakeList_Nums, MistakeList_Pasp)
+End Sub
+Private Sub Child_8_AfterUpdate()
+    Call ChildPomen(Child_8, 8, ChildrenState, Tel_8, Num_8, MistakeList_Nums, MistakeList_Pasp)
+End Sub
+Private Sub Child_9_AfterUpdate()
+    Call ChildPomen(Child_9, 9, ChildrenState, Tel_9, Num_9, MistakeList_Nums, MistakeList_Pasp)
+End Sub
+Private Sub Child_10_AfterUpdate()
+    Call ChildPomen(Child_10, 10, ChildrenState, Tel_10, Num_10, MistakeList_Nums, MistakeList_Pasp)
+End Sub
+Private Sub Num_1_AfterUpdate()
+    Call UUUUH(Num_1, ListNumerous, PasportType_1, (0 + 10 * (Int(PageNumber.Caption) - 1)))
+    Call CheckReds(Num_1)
+    Call ZapisCvetaPolya(Num_1, 1, MistakeList_Pasp)
+End Sub
+Private Sub Num_2_AfterUpdate()
+    Call UUUUH(Num_2, ListNumerous, PasportType_2, (1 + 10 * (Int(PageNumber.Caption) - 1)))
+    Call CheckReds(Num_2)
+    Call ZapisCvetaPolya(Num_2, 2, MistakeList_Pasp)
+End Sub
+Private Sub Num_3_AfterUpdate()
+    Call UUUUH(Num_3, ListNumerous, PasportType_3, (2 + 10 * (Int(PageNumber.Caption) - 1)))
+    Call CheckReds(Num_3)
+    Call ZapisCvetaPolya(Num_3, 3, MistakeList_Pasp)
+End Sub
+Private Sub Num_4_AfterUpdate()
+    Call UUUUH(Num_4, ListNumerous, PasportType_4, (3 + 10 * (Int(PageNumber.Caption) - 1)))
+    Call CheckReds(Num_4)
+    Call ZapisCvetaPolya(Num_4, 4, MistakeList_Pasp)
+End Sub
+Private Sub Num_5_AfterUpdate()
+    Call UUUUH(Num_5, ListNumerous, PasportType_5, (4 + 10 * (Int(PageNumber.Caption) - 1)))
+    Call CheckReds(Num_5)
+    Call ZapisCvetaPolya(Num_5, 5, MistakeList_Pasp)
+End Sub
+Private Sub Num_6_AfterUpdate()
+    Call UUUUH(Num_6, ListNumerous, PasportType_6, (5 + 10 * (Int(PageNumber.Caption) - 1)))
+    Call CheckReds(Num_6)
+    Call ZapisCvetaPolya(Num_6, 6, MistakeList_Pasp)
+End Sub
+Private Sub Num_7_AfterUpdate()
+    Call UUUUH(Num_7, ListNumerous, PasportType_7, (6 + 10 * (Int(PageNumber.Caption) - 1)))
+    Call CheckReds(Num_7)
+    Call ZapisCvetaPolya(Num_7, 7, MistakeList_Pasp)
+End Sub
+Private Sub Num_8_AfterUpdate()
+    Call UUUUH(Num_8, ListNumerous, PasportType_8, (7 + 10 * (Int(PageNumber.Caption) - 1)))
+    Call CheckReds(Num_8)
+    Call ZapisCvetaPolya(Num_8, 8, MistakeList_Pasp)
+End Sub
+Private Sub Num_9_AfterUpdate()
+    Call UUUUH(Num_9, ListNumerous, PasportType_9, (8 + 10 * (Int(PageNumber.Caption) - 1)))
+    Call CheckReds(Num_9)
+    Call ZapisCvetaPolya(Num_9, 9, MistakeList_Pasp)
+End Sub
+Private Sub Num_10_AfterUpdate()
+    Call UUUUH(Num_10, ListNumerous, PasportType_10, (9 + 10 * (Int(PageNumber.Caption) - 1)))
+    Call CheckReds(Num_10)
+    Call ZapisCvetaPolya(Num_10, 10, MistakeList_Pasp)
+End Sub
+Private Sub Tel_1_AfterUpdate()
+    Dim A As String
+    If FIO_Label.Caption = "ФИО:" Then
+        If Tel_1.Value Like "8-(###)-###-##-##" Or Tel_1.InputMask = Chr(34) & "8-(" & Chr(34) & "000" & Chr(34) & ")-" & Chr(34) & "000\-00\-00" Then
+            If Tel_1.Value <> "" Then
+                A = "8-(" & Left(Tel_1.Value, 3) & ")-" & Mid(Tel_1.Value, 4, 3) & "-" & Mid(Tel_1.Value, 7, 2) & "-" & Mid(Tel_1.Value, 9)
+            Else
+                A = ""
+            End If
+            Contact_List.RemoveItem (10 * (Int(PageNumber.Caption) - 1))
+            Contact_List.AddItem A, (10 * (Int(PageNumber.Caption) - 1))
+            If IsNull(Tel_1.InputMask) Then Tel_1.InputMask = "8-(000)-000-00-00"
+            Call CheckReds(Tel_1)
+            Call ZapisCvetaPolya(Tel_1, 1, MistakeList_Nums)
+        Else
+            i = MsgBox("Введенный вами телефон не соответствует маски ввода (Форамат должен быть такой - 8-(800)-555-35-35)! Сейчас телефон указанный вами - " _
+            & Chr(34) & Tel_1.Value & Chr(34) & " будет удален, так что запишите его на бумажке, если он вам необходим", vbExclamation)
+            Tel_1.Value = ""
+            Contact_List.RemoveItem (10 * (Int(PageNumber.Caption) - 1))
+            Contact_List.AddItem "", (10 * (Int(PageNumber.Caption) - 1))
+            Tel_1.InputMask = "8-(000)-000-00-00"
+            Vnesh.RemoveItem (10 * (Int(PageNumber.Caption) - 1))
+            Vnesh.AddItem False, (10 * (Int(PageNumber.Caption) - 1))
+        End If
+    Else
+        If IsNull(Tel_1.Value) Then
+            A = ""
+        Else
+            A = Tel_1.Value
+        End If
+        Contact_List.RemoveItem (10 * (Int(PageNumber.Caption) - 1))
+        Contact_List.AddItem A, (10 * (Int(PageNumber.Caption) - 1))
+        Call CheckReds(Tel_1)
+        Call ZapisCvetaPolya(Tel_1, 1, MistakeList_Nums)
+    End If
+End Sub
+Private Sub Tel_2_AfterUpdate()
+    Dim A As String
+    If FIO_Label.Caption = "ФИО:" Then
+        If Tel_2.Value Like "8-(###)-###-##-##" Or Tel_2.InputMask = Chr(34) & "8-(" & Chr(34) & "000" & Chr(34) & ")-" & Chr(34) & "000\-00\-00" Then
+            If Tel_2.Value <> "" Then
+                A = "8-(" & Left(Tel_2.Value, 3) & ")-" & Mid(Tel_2.Value, 4, 3) & "-" & Mid(Tel_2.Value, 7, 2) & "-" & Mid(Tel_2.Value, 9)
+            Else
+                A = ""
+            End If
+            Contact_List.RemoveItem (1 + 10 * (Int(PageNumber.Caption) - 1))
+            Contact_List.AddItem A, (1 + 10 * (Int(PageNumber.Caption) - 1))
+            If IsNull(Tel_2.InputMask) Then Tel_2.InputMask = "8-(000)-000-00-00"
+            Call CheckReds(Tel_2)
+            Call ZapisCvetaPolya(Tel_2, 2, MistakeList_Nums)
+        Else
+            i = MsgBox("Введенный вами телефон не соответствует маски ввода (Форамат должен быть такой - 8-(800)-555-35-35)! Сейчас телефон указанный вами - " _
+            & Chr(34) & Tel_2.Value & Chr(34) & " будет удален, так что запишите его на бумажке, если он вам необходим", vbExclamation)
+            Tel_2.Value = ""
+            Contact_List.RemoveItem (1 + 10 * (Int(PageNumber.Caption) - 1))
+            Contact_List.AddItem "", (1 + 10 * (Int(PageNumber.Caption) - 1))
+            Tel_2.InputMask = "8-(000)-000-00-00"
+            Vnesh.RemoveItem (1 + 10 * (Int(PageNumber.Caption) - 1))
+            Vnesh.AddItem False, (1 + 10 * (Int(PageNumber.Caption) - 1))
+        End If
+    Else
+        If IsNull(Tel_2.Value) Then
+            A = ""
+        Else
+            A = Tel_2.Value
+        End If
+        Contact_List.RemoveItem (1 + 10 * (Int(PageNumber.Caption) - 1))
+        Contact_List.AddItem A, (1 + 10 * (Int(PageNumber.Caption) - 1))
+        Call CheckReds(Tel_2)
+        Call ZapisCvetaPolya(Tel_2, 2, MistakeList_Nums)
+    End If
+End Sub
+Private Sub Tel_3_AfterUpdate()
+    Dim A As String
+    If FIO_Label.Caption = "ФИО:" Then
+        If Tel_3.Value Like "8-(###)-###-##-##" Or Tel_3.InputMask = Chr(34) & "8-(" & Chr(34) & "000" & Chr(34) & ")-" & Chr(34) & "000\-00\-00" Then
+            If Tel_3.Value <> "" Then
+                A = "8-(" & Left(Tel_3.Value, 3) & ")-" & Mid(Tel_3.Value, 4, 3) & "-" & Mid(Tel_3.Value, 7, 2) & "-" & Mid(Tel_3.Value, 9)
+            Else
+                A = ""
+            End If
+            Contact_List.RemoveItem (2 + 10 * (Int(PageNumber.Caption) - 1))
+            Contact_List.AddItem A, (2 + 10 * (Int(PageNumber.Caption) - 1))
+            If IsNull(Tel_3.InputMask) Then Tel_3.InputMask = "8-(000)-000-00-00"
+            Call CheckReds(Tel_3)
+            Call ZapisCvetaPolya(Tel_3, 3, MistakeList_Nums)
+        Else
+            i = MsgBox("Введенный вами телефон не соответствует маски ввода (Форамат должен быть такой - 8-(800)-555-35-35)! Сейчас телефон указанный вами - " _
+            & Chr(34) & Tel_3.Value & Chr(34) & " будет удален, так что запишите его на бумажке, если он вам необходим", vbExclamation)
+            Tel_3.Value = ""
+            Contact_List.RemoveItem (2 + 10 * (Int(PageNumber.Caption) - 1))
+            Contact_List.AddItem "", (2 + 10 * (Int(PageNumber.Caption) - 1))
+            Tel_3.InputMask = "8-(000)-000-00-00"
+            Vnesh.RemoveItem (2 + 10 * (Int(PageNumber.Caption) - 1))
+            Vnesh.AddItem False, (2 + 10 * (Int(PageNumber.Caption) - 1))
+        End If
+    Else
+        If IsNull(Tel_3.Value) Then
+            A = ""
+        Else
+            A = Tel_3.Value
+        End If
+        Contact_List.RemoveItem (2 + 10 * (Int(PageNumber.Caption) - 1))
+        Contact_List.AddItem A, (2 + 10 * (Int(PageNumber.Caption) - 1))
+        Call CheckReds(Tel_3)
+        Call ZapisCvetaPolya(Tel_3, 3, MistakeList_Nums)
+    End If
+End Sub
+Private Sub Tel_4_AfterUpdate()
+    Dim A As String
+    If FIO_Label.Caption = "ФИО:" Then
+        If Tel_4.Value Like "8-(###)-###-##-##" Or Tel_4.InputMask = Chr(34) & "8-(" & Chr(34) & "000" & Chr(34) & ")-" & Chr(34) & "000\-00\-00" Then
+            If Tel_4.Value <> "" Then
+                A = "8-(" & Left(Tel_4.Value, 3) & ")-" & Mid(Tel_4.Value, 4, 3) & "-" & Mid(Tel_4.Value, 7, 2) & "-" & Mid(Tel_4.Value, 9)
+            Else
+                A = ""
+            End If
+            Contact_List.RemoveItem (3 + 10 * (Int(PageNumber.Caption) - 1))
+            Contact_List.AddItem A, (3 + 10 * (Int(PageNumber.Caption) - 1))
+            If IsNull(Tel_4.InputMask) Then Tel_4.InputMask = "8-(000)-000-00-00"
+            Call CheckReds(Tel_4)
+            Call ZapisCvetaPolya(Tel_4, 4, MistakeList_Nums)
+        Else
+            i = MsgBox("Введенный вами телефон не соответствует маски ввода (Форамат должен быть такой - 8-(800)-555-35-35)! Сейчас телефон указанный вами - " _
+            & Chr(34) & Tel_4.Value & Chr(34) & " будет удален, так что запишите его на бумажке, если он вам необходим", vbExclamation)
+            Tel_4.Value = ""
+            Contact_List.RemoveItem (3 + 10 * (Int(PageNumber.Caption) - 1))
+            Contact_List.AddItem "", (3 + 10 * (Int(PageNumber.Caption) - 1))
+            Tel_4.InputMask = "8-(000)-000-00-00"
+            Vnesh.RemoveItem (3 + 10 * (Int(PageNumber.Caption) - 1))
+            Vnesh.AddItem False, (3 + 10 * (Int(PageNumber.Caption) - 1))
+        End If
+    Else
+        If IsNull(Tel_4.Value) Then
+            A = ""
+        Else
+            A = Tel_4.Value
+        End If
+        Contact_List.RemoveItem (3 + 10 * (Int(PageNumber.Caption) - 1))
+        Contact_List.AddItem A, (3 + 10 * (Int(PageNumber.Caption) - 1))
+        Call CheckReds(Tel_4)
+        Call ZapisCvetaPolya(Tel_4, 4, MistakeList_Nums)
+    End If
+End Sub
+Private Sub Tel_5_AfterUpdate()
+    Dim A As String
+    If FIO_Label.Caption = "ФИО:" Then
+        If Tel_5.Value Like "8-(###)-###-##-##" Or Tel_5.InputMask = Chr(34) & "8-(" & Chr(34) & "000" & Chr(34) & ")-" & Chr(34) & "000\-00\-00" Then
+            If Tel_5.Value <> "" Then
+                A = "8-(" & Left(Tel_5.Value, 3) & ")-" & Mid(Tel_5.Value, 4, 3) & "-" & Mid(Tel_5.Value, 7, 2) & "-" & Mid(Tel_5.Value, 9)
+            Else
+                A = ""
+            End If
+            Contact_List.RemoveItem (4 + 10 * (Int(PageNumber.Caption) - 1))
+            Contact_List.AddItem A, (4 + 10 * (Int(PageNumber.Caption) - 1))
+            If IsNull(Tel_5.InputMask) Then Tel_5.InputMask = "8-(000)-000-00-00"
+            Call CheckReds(Tel_5)
+            Call ZapisCvetaPolya(Tel_5, 5, MistakeList_Nums)
+        Else
+            i = MsgBox("Введенный вами телефон не соответствует маски ввода (Форамат должен быть такой - 8-(800)-555-35-35)! Сейчас телефон указанный вами - " _
+            & Chr(34) & Tel_5.Value & Chr(34) & " будет удален, так что запишите его на бумажке, если он вам необходим", vbExclamation)
+            Tel_5.Value = ""
+            Contact_List.RemoveItem (4 + 10 * (Int(PageNumber.Caption) - 1))
+            Contact_List.AddItem "", (4 + 10 * (Int(PageNumber.Caption) - 1))
+            Tel_5.InputMask = "8-(000)-000-00-00"
+            Vnesh.RemoveItem (4 + 10 * (Int(PageNumber.Caption) - 1))
+            Vnesh.AddItem False, (4 + 10 * (Int(PageNumber.Caption) - 1))
+        End If
+    Else
+        If IsNull(Tel_5.Value) Then
+            A = ""
+        Else
+            A = Tel_5.Value
+        End If
+        Contact_List.RemoveItem (4 + 10 * (Int(PageNumber.Caption) - 1))
+        Contact_List.AddItem A, (4 + 10 * (Int(PageNumber.Caption) - 1))
+        Call CheckReds(Tel_5)
+        Call ZapisCvetaPolya(Tel_5, 5, MistakeList_Nums)
+    End If
+End Sub
+Private Sub Tel_6_AfterUpdate()
+     Dim A As String
+     If FIO_Label.Caption = "ФИО:" Then
+        If Tel_6.Value Like "8-(###)-###-##-##" Or Tel_6.InputMask = Chr(34) & "8-(" & Chr(34) & "000" & Chr(34) & ")-" & Chr(34) & "000\-00\-00" Then
+            If Tel_6.Value <> "" Then
+                A = "8-(" & Left(Tel_6.Value, 3) & ")-" & Mid(Tel_6.Value, 4, 3) & "-" & Mid(Tel_6.Value, 7, 2) & "-" & Mid(Tel_6.Value, 9)
+            Else
+                A = ""
+            End If
+            Contact_List.RemoveItem (5 + 10 * (Int(PageNumber.Caption) - 1))
+            Contact_List.AddItem A, (5 + 10 * (Int(PageNumber.Caption) - 1))
+            If IsNull(Tel_6.InputMask) Then Tel_6.InputMask = "8-(000)-000-00-00"
+            Call CheckReds(Tel_6)
+            Call ZapisCvetaPolya(Tel_6, 6, MistakeList_Nums)
+        Else
+            i = MsgBox("Введенный вами телефон не соответствует маски ввода (Форамат должен быть такой - 8-(800)-555-35-35)! Сейчас телефон указанный вами - " _
+            & Chr(34) & Tel_6.Value & Chr(34) & " будет удален, так что запишите его на бумажке, если он вам необходим", vbExclamation)
+            Tel_6.Value = ""
+            Contact_List.RemoveItem (5 + 10 * (Int(PageNumber.Caption) - 1))
+            Contact_List.AddItem "", (5 + 10 * (Int(PageNumber.Caption) - 1))
+            Tel_6.InputMask = "8-(000)-000-00-00"
+            Vnesh.RemoveItem (5 + 10 * (Int(PageNumber.Caption) - 1))
+            Vnesh.AddItem False, (5 + 10 * (Int(PageNumber.Caption) - 1))
+        End If
+    Else
+        If IsNull(Tel_6.Value) Then
+            A = ""
+        Else
+            A = Tel_6.Value
+        End If
+        Contact_List.RemoveItem (5 + 10 * (Int(PageNumber.Caption) - 1))
+        Contact_List.AddItem A, (5 + 10 * (Int(PageNumber.Caption) - 1))
+        Call CheckReds(Tel_6)
+        Call ZapisCvetaPolya(Tel_6, 6, MistakeList_Nums)
+    End If
+End Sub
+Private Sub Tel_7_AfterUpdate()
+     Dim A As String
+     If FIO_Label.Caption = "ФИО:" Then
+        If Tel_7.Value Like "8-(###)-###-##-##" Or Tel_7.InputMask = Chr(34) & "8-(" & Chr(34) & "000" & Chr(34) & ")-" & Chr(34) & "000\-00\-00" Then
+            If Tel_7.Value <> "" Then
+                A = "8-(" & Left(Tel_7.Value, 3) & ")-" & Mid(Tel_7.Value, 4, 3) & "-" & Mid(Tel_7.Value, 7, 2) & "-" & Mid(Tel_7.Value, 9)
+            Else
+                A = ""
+            End If
+            Contact_List.RemoveItem (6 + 10 * (Int(PageNumber.Caption) - 1))
+            Contact_List.AddItem A, (6 + 10 * (Int(PageNumber.Caption) - 1))
+            If IsNull(Tel_7.InputMask) Then Tel_7.InputMask = "8-(000)-000-00-00"
+            Call CheckReds(Tel_7)
+            Call ZapisCvetaPolya(Tel_7, 7, MistakeList_Nums)
+        Else
+            i = MsgBox("Введенный вами телефон не соответствует маски ввода (Форамат должен быть такой - 8-(800)-555-35-35)! Сейчас телефон указанный вами - " _
+            & Chr(34) & Tel_7.Value & Chr(34) & " будет удален, так что запишите его на бумажке, если он вам необходим", vbExclamation)
+            Tel_7.Value = ""
+            Contact_List.RemoveItem (6 + 10 * (Int(PageNumber.Caption) - 1))
+            Contact_List.AddItem "", (6 + 10 * (Int(PageNumber.Caption) - 1))
+            Tel_7.InputMask = "8-(000)-000-00-00"
+            Vnesh.RemoveItem (6 + 10 * (Int(PageNumber.Caption) - 1))
+            Vnesh.AddItem False, (6 + 10 * (Int(PageNumber.Caption) - 1))
+        End If
+    Else
+        If IsNull(Tel_7.Value) Then
+            A = ""
+        Else
+            A = Tel_7.Value
+        End If
+        Contact_List.RemoveItem (6 + 10 * (Int(PageNumber.Caption) - 1))
+        Contact_List.AddItem A, (6 + 10 * (Int(PageNumber.Caption) - 1))
+        Call CheckReds(Tel_7)
+        Call ZapisCvetaPolya(Tel_7, 7, MistakeList_Nums)
+    End If
+End Sub
+Private Sub Tel_8_AfterUpdate()
+     Dim A As String
+     If FIO_Label.Caption = "ФИО:" Then
+        If Tel_8.Value Like "8-(###)-###-##-##" Or Tel_8.InputMask = Chr(34) & "8-(" & Chr(34) & "000" & Chr(34) & ")-" & Chr(34) & "000\-00\-00" Then
+            If Tel_8.Value <> "" Then
+                A = "8-(" & Left(Tel_8.Value, 3) & ")-" & Mid(Tel_8.Value, 4, 3) & "-" & Mid(Tel_8.Value, 7, 2) & "-" & Mid(Tel_8.Value, 9)
+            Else
+                A = ""
+            End If
+            Contact_List.RemoveItem (7 + 10 * (Int(PageNumber.Caption) - 1))
+            Contact_List.AddItem A, (7 + 10 * (Int(PageNumber.Caption) - 1))
+            If IsNull(Tel_8.InputMask) Then Tel_8.InputMask = "8-(000)-000-00-00"
+            Call CheckReds(Tel_8)
+            Call ZapisCvetaPolya(Tel_8, 8, MistakeList_Nums)
+        Else
+            i = MsgBox("Введенный вами телефон не соответствует маски ввода (Форамат должен быть такой - 8-(800)-555-35-35)! Сейчас телефон указанный вами - " _
+            & Chr(34) & Tel_8.Value & Chr(34) & " будет удален, так что запишите его на бумажке, если он вам необходим", vbExclamation)
+            Tel_8.Value = ""
+            Contact_List.RemoveItem (7 + 10 * (Int(PageNumber.Caption) - 1))
+            Contact_List.AddItem "", (7 + 10 * (Int(PageNumber.Caption) - 1))
+            Tel_8.InputMask = "8-(000)-000-00-00"
+            Vnesh.RemoveItem (7 + 10 * (Int(PageNumber.Caption) - 1))
+            Vnesh.AddItem False, (7 + 10 * (Int(PageNumber.Caption) - 1))
+        End If
+    Else
+        If IsNull(Tel_8.Value) Then
+            A = ""
+        Else
+            A = Tel_8.Value
+        End If
+        Contact_List.RemoveItem (7 + 10 * (Int(PageNumber.Caption) - 1))
+        Contact_List.AddItem A, (7 + 10 * (Int(PageNumber.Caption) - 1))
+        Call CheckReds(Tel_8)
+        Call ZapisCvetaPolya(Tel_8, 8, MistakeList_Nums)
+    End If
+End Sub
+Private Sub Tel_9_AfterUpdate()
+    Dim A As String
+    If FIO_Label.Caption = "ФИО:" Then
+        If Tel_9.Value Like "8-(###)-###-##-##" Or Tel_9.InputMask = Chr(34) & "8-(" & Chr(34) & "000" & Chr(34) & ")-" & Chr(34) & "000\-00\-00" Then
+            If Tel_9.Value <> "" Then
+                A = "8-(" & Left(Tel_9.Value, 3) & ")-" & Mid(Tel_9.Value, 4, 3) & "-" & Mid(Tel_9.Value, 7, 2) & "-" & Mid(Tel_9.Value, 9)
+            Else
+                A = ""
+            End If
+            Contact_List.RemoveItem (8 + 10 * (Int(PageNumber.Caption) - 1))
+            Contact_List.AddItem A, (8 + 10 * (Int(PageNumber.Caption) - 1))
+            If IsNull(Tel_9.InputMask) Then Tel_9.InputMask = "8-(000)-000-00-00"
+            Call CheckReds(Tel_9)
+            Call ZapisCvetaPolya(Tel_9, 9, MistakeList_Nums)
+        Else
+            i = MsgBox("Введенный вами телефон не соответствует маски ввода (Форамат должен быть такой - 8-(800)-555-35-35)! Сейчас телефон указанный вами - " _
+            & Chr(34) & Tel_9.Value & Chr(34) & " будет удален, так что запишите его на бумажке, если он вам необходим", vbExclamation)
+            Tel_9.Value = ""
+            Contact_List.RemoveItem (8 + 10 * (Int(PageNumber.Caption) - 1))
+            Contact_List.AddItem "", (8 + 10 * (Int(PageNumber.Caption) - 1))
+            Tel_9.InputMask = "8-(000)-000-00-00"
+            Vnesh.RemoveItem (8 + 10 * (Int(PageNumber.Caption) - 1))
+            Vnesh.AddItem False, (8 + 10 * (Int(PageNumber.Caption) - 1))
+        End If
+    Else
+        If IsNull(Tel_9.Value) Then
+            A = ""
+        Else
+            A = Tel_9.Value
+        End If
+        Contact_List.RemoveItem (8 + 10 * (Int(PageNumber.Caption) - 1))
+        Contact_List.AddItem A, (8 + 10 * (Int(PageNumber.Caption) - 1))
+        Call CheckReds(Tel_9)
+        Call ZapisCvetaPolya(Tel_9, 9, MistakeList_Nums)
+    End If
+End Sub
+Private Sub Tel_10_AfterUpdate()
+    Dim A As String
+    If FIO_Label.Caption = "ФИО:" Then
+        If Tel_10.Value Like "8-(###)-###-##-##" Or Tel_10.InputMask = Chr(34) & "8-(" & Chr(34) & "000" & Chr(34) & ")-" & Chr(34) & "000\-00\-00" Then
+            If Tel_10.Value <> "" Then
+                A = "8-(" & Left(Tel_10.Value, 3) & ")-" & Mid(Tel_10.Value, 4, 3) & "-" & Mid(Tel_10.Value, 7, 2) & "-" & Mid(Tel_10.Value, 9)
+            Else
+                A = ""
+            End If
+            Contact_List.RemoveItem (9 + 10 * (Int(PageNumber.Caption) - 1))
+            Contact_List.AddItem A, (9 + 10 * (Int(PageNumber.Caption) - 1))
+            If IsNull(Tel_10.InputMask) Then Tel_10.InputMask = "8-(000)-000-00-00"
+            Call CheckReds(Tel_10)
+            Call ZapisCvetaPolya(Tel_10, 10, MistakeList_Nums)
+        Else
+            i = MsgBox("Введенный вами телефон не соответствует маски ввода (Форамат должен быть такой - 8-(800)-555-35-35)! Сейчас телефон указанный вами - " _
+            & Chr(34) & Tel_10.Value & Chr(34) & " будет удален, так что запишите его на бумажке, если он вам необходим", vbExclamation)
+            Tel_10.Value = ""
+            Contact_List.RemoveItem (9 + 10 * (Int(PageNumber.Caption) - 1))
+            Contact_List.AddItem "", (9 + 10 * (Int(PageNumber.Caption) - 1))
+            Tel_10.InputMask = "8-(000)-000-00-00"
+            Vnesh.RemoveItem (9 + 10 * (Int(PageNumber.Caption) - 1))
+            Vnesh.AddItem False, (9 + 10 * (Int(PageNumber.Caption) - 1))
+        End If
+    Else
+        If IsNull(Tel_10.Value) Then
+            A = ""
+        Else
+            A = Tel_10.Value
+        End If
+        Contact_List.RemoveItem (9 + 10 * (Int(PageNumber.Caption) - 1))
+        Contact_List.AddItem A, (9 + 10 * (Int(PageNumber.Caption) - 1))
+        Call CheckReds(Tel_10)
+        Call ZapisCvetaPolya(Tel_10, 10, MistakeList_Nums)
+    End If
+End Sub
+Private Sub UUUUH(Korobka As Object, Spisok As Object, pt As Object, Polozhenie As Integer)
+    Dim A As String
+    On Error Resume Next:
+    Korobka.Value = Replace(Korobka.Value, "'", "")
+    If Spisok.Name = "ListNumerous" And pt.Value = pt.ItemData(0) Then
+        A = Left(Korobka.Value, 4) & " " & Right(Korobka.Value, 6)
+    Else
+        A = CStr(Korobka.Value)
+    End If
+    Spisok.RemoveItem Polozhenie
+    Spisok.AddItem A, Polozhenie
+    Call ReadWriteDebug("Форма:Spisok_Vvoda***Процедура:UUUUH, Объект:" & Korobka.Name & "***Знач:" & Spisok.ItemData(Polozhenie))
+End Sub
+Private Sub PasportType_1_AfterUpdate()
+    If IsNull(PasportType_1.Value) Then
+        PasportType_1.Value = PasportType_1.ItemData(0)
+    End If
+    Num_1.Value = ""
+    Call ChangeMask(Num_1, PasportType_1.Value)
+    Call ZapisIzmeneyYypaPasporta(Num_1, PasportType_1, 1)
+    If FIO_Label.Caption = "ФИО:" Then
+        Num_1.SetFocus
+    Else
+        Tel_1.SetFocus
+        Call CheckReds(PasportType_1)
+        MistakeList_Pasp.RemoveItem (10 * (Int(PageNumber.Caption) - 1))
+        MistakeList_Pasp.AddItem False, (10 * (Int(PageNumber.Caption) - 1))
+    End If
+    Call ReadWriteDebug("Форма:Spisok_Vvoda***Процедура:PasportType_1_AfterUpdate***Знач:")
+End Sub
+Private Sub PasportType_2_AfterUpdate()
+    If IsNull(PasportType_2.Value) Then
+        PasportType_2.Value = PasportType_2.ItemData(0)
+    End If
+    Num_2.Value = ""
+    Call ChangeMask(Num_2, PasportType_2.Value)
+    Call ZapisIzmeneyYypaPasporta(Num_2, PasportType_2, 2)
+    If FIO_Label.Caption = "ФИО:" Then
+        Num_2.SetFocus
+    Else
+        Tel_2.SetFocus
+        Call CheckReds(PasportType_2)
+        MistakeList_Pasp.RemoveItem (1 + 10 * (Int(PageNumber.Caption) - 1))
+        MistakeList_Pasp.AddItem False, (1 + 10 * (Int(PageNumber.Caption) - 1))
+    End If
+    Call ReadWriteDebug("Форма:Spisok_Vvoda***Процедура:PasportType_2_AfterUpdate***Знач:")
+End Sub
+Private Sub PasportType_3_AfterUpdate()
+    If IsNull(PasportType_3.Value) Then
+        PasportType_3.Value = PasportType_3.ItemData(0)
+    End If
+    Num_3.Value = ""
+    Call ChangeMask(Num_3, PasportType_3.Value)
+    Call ZapisIzmeneyYypaPasporta(Num_3, PasportType_3, 3)
+    If FIO_Label.Caption = "ФИО:" Then
+        Num_3.SetFocus
+    Else
+        Tel_3.SetFocus
+        Call CheckReds(PasportType_3)
+        MistakeList_Pasp.RemoveItem (2 + 10 * (Int(PageNumber.Caption) - 1))
+        MistakeList_Pasp.AddItem False, (2 + 10 * (Int(PageNumber.Caption) - 1))
+    End If
+    Call ReadWriteDebug("Форма:Spisok_Vvoda***Процедура:PasportType_3_AfterUpdate***Знач:")
+End Sub
+Private Sub PasportType_4_AfterUpdate()
+    If IsNull(PasportType_4.Value) Then
+        PasportType_4.Value = PasportType_4.ItemData(0)
+    End If
+    Num_4.Value = ""
+    Call ChangeMask(Num_4, PasportType_4.Value)
+    Call ZapisIzmeneyYypaPasporta(Num_4, PasportType_4, 4)
+    If FIO_Label.Caption = "ФИО:" Then
+        Num_4.SetFocus
+    Else
+        Tel_4.SetFocus
+        Call CheckReds(PasportType_4)
+        MistakeList_Pasp.RemoveItem (3 + 10 * (Int(PageNumber.Caption) - 1))
+        MistakeList_Pasp.AddItem False, (3 + 10 * (Int(PageNumber.Caption) - 1))
+    End If
+    Call ReadWriteDebug("Форма:Spisok_Vvoda***Процедура:PasportType_4_AfterUpdate***Знач:")
+End Sub
+Private Sub PasportType_5_AfterUpdate()
+    If IsNull(PasportType_5.Value) Then
+        PasportType_5.Value = PasportType_5.ItemData(0)
+    End If
+    Num_5.Value = ""
+    Call ChangeMask(Num_5, PasportType_5.Value)
+    Call ZapisIzmeneyYypaPasporta(Num_5, PasportType_5, 5)
+    If FIO_Label.Caption = "ФИО:" Then
+        Num_5.SetFocus
+    Else
+        Tel_5.SetFocus
+        Call CheckReds(PasportType_5)
+        MistakeList_Pasp.RemoveItem (4 + 10 * (Int(PageNumber.Caption) - 1))
+        MistakeList_Pasp.AddItem False, (4 + 10 * (Int(PageNumber.Caption) - 1))
+    End If
+    Call ReadWriteDebug("Форма:Spisok_Vvoda***Процедура:PasportType_5_AfterUpdate***Знач:")
+End Sub
+Private Sub PasportType_6_AfterUpdate()
+    If IsNull(PasportType_6.Value) Then
+        PasportType_6.Value = PasportType_6.ItemData(0)
+    End If
+    Num_6.Value = ""
+    Call ChangeMask(Num_6, PasportType_6.Value)
+    Call ZapisIzmeneyYypaPasporta(Num_6, PasportType_6, 6)
+    If FIO_Label.Caption = "ФИО:" Then
+        Num_6.SetFocus
+    Else
+        Tel_6.SetFocus
+        Call CheckReds(PasportType_6)
+        MistakeList_Pasp.RemoveItem (5 + 10 * (Int(PageNumber.Caption) - 1))
+        MistakeList_Pasp.AddItem False, (5 + 10 * (Int(PageNumber.Caption) - 1))
+    End If
+    Call ReadWriteDebug("Форма:Spisok_Vvoda***Процедура:PasportType_6_AfterUpdate***Знач:")
+End Sub
+Private Sub PasportType_7_AfterUpdate()
+    If IsNull(PasportType_7.Value) Then
+        PasportType_7.Value = PasportType_7.ItemData(0)
+    End If
+    Num_7.Value = ""
+    Call ChangeMask(Num_7, PasportType_7.Value)
+    Call ZapisIzmeneyYypaPasporta(Num_7, PasportType_7, 7)
+    If FIO_Label.Caption = "ФИО:" Then
+        Num_7.SetFocus
+    Else
+        Tel_7.SetFocus
+        Call CheckReds(PasportType_7)
+        MistakeList_Pasp.RemoveItem (6 + 10 * (Int(PageNumber.Caption) - 1))
+        MistakeList_Pasp.AddItem False, (6 + 10 * (Int(PageNumber.Caption) - 1))
+    End If
+    Call ReadWriteDebug("Форма:Spisok_Vvoda***Процедура:PasportType_7_AfterUpdate***Знач:")
+End Sub
+Private Sub PasportType_8_AfterUpdate()
+    If IsNull(PasportType_8.Value) Then
+        PasportType_8.Value = PasportType_8.ItemData(0)
+    End If
+    Num_8.Value = ""
+    Call ChangeMask(Num_8, PasportType_8.Value)
+    Call ZapisIzmeneyYypaPasporta(Num_8, PasportType_8, 8)
+    If FIO_Label.Caption = "ФИО:" Then
+        Num_8.SetFocus
+    Else
+        Tel_8.SetFocus
+        Call CheckReds(PasportType_8)
+        MistakeList_Pasp.RemoveItem (7 + 10 * (Int(PageNumber.Caption) - 1))
+        MistakeList_Pasp.AddItem False, (7 + 10 * (Int(PageNumber.Caption) - 1))
+    End If
+    Call ReadWriteDebug("Форма:Spisok_Vvoda***Процедура:PasportType_8_AfterUpdate***Знач:")
+End Sub
+Private Sub PasportType_9_AfterUpdate()
+    If IsNull(PasportType_9.Value) Then
+        PasportType_9.Value = PasportType_9.ItemData(0)
+    End If
+    Num_9.Value = ""
+    Call ChangeMask(Num_9, PasportType_9.Value)
+    Call ZapisIzmeneyYypaPasporta(Num_9, PasportType_9, 9)
+    If FIO_Label.Caption = "ФИО:" Then
+        Num_9.SetFocus
+    Else
+        Tel_9.SetFocus
+        Call CheckReds(PasportType_9)
+        MistakeList_Pasp.RemoveItem (8 + 10 * (Int(PageNumber.Caption) - 1))
+        MistakeList_Pasp.AddItem False, (8 + 10 * (Int(PageNumber.Caption) - 1))
+    End If
+    Call ReadWriteDebug("Форма:Spisok_Vvoda***Процедура:PasportType_9_AfterUpdate***Знач:")
+End Sub
+Private Sub PasportType_10_AfterUpdate()
+    If IsNull(PasportType_10.Value) Then
+        PasportType_10.Value = PasportType_10.ItemData(0)
+    End If
+    Num_10.Value = ""
+    Call ChangeMask(Num_10, PasportType_10.Value)
+    Call ZapisIzmeneyYypaPasporta(Num_10, PasportType_10, 10)
+    If FIO_Label.Caption = "ФИО:" Then
+        Num_10.SetFocus
+    Else
+        Tel_10.SetFocus
+        Call CheckReds(PasportType_10)
+        MistakeList_Pasp.RemoveItem (9 + 10 * (Int(PageNumber.Caption) - 1))
+        MistakeList_Pasp.AddItem False, (9 + 10 * (Int(PageNumber.Caption) - 1))
+    End If
+    Call ReadWriteDebug("Форма:Spisok_Vvoda***Процедура:PasportType_10_AfterUpdate***Знач:")
+End Sub
+Private Sub ZapisIzmeneyYypaPasporta(Pasp As Object, Spis As Object, NumerStroki)
+    Dim Nomer As Integer
+    Nomer = (Int((PageNumber.Caption) - 1) * 10 + NumerStroki)
+    PassportList.RemoveItem Nomer - 1
+    PassportList.AddItem Spis.ListIndex, Nomer - 1
+    Call ReadWriteDebug("Форма:Spisok_Vvoda***Процедура:ZapisIzmeneyYypaPasporta, Объект:" & Pasp.Name & "***Знач:" & PassportList.ItemData(Nomer - 1))
+End Sub
+Private Sub ZapisCvetaPolya(ObjT As Object, NumerStroki, TypeSpis As Object)
+    Nomer = (Int((PageNumber.Caption) - 1) * 10 + NumerStroki)
+    TypeSpis.RemoveItem Nomer - 1
+    If ObjT.BackColor = RGB(240, 101, 130) Then
+        TypeSpis.AddItem True, Nomer - 1
+        Call ReadWriteDebug("Форма:Spisok_Vvoda***Процедура:ZapisCvetaPolya, Объект:" & ObjT.Name & "***Знач: Номер строки:" & (Nomer) & " Цвет границы - желтый")
+    Else
+        TypeSpis.AddItem False, Nomer - 1
+        Call ReadWriteDebug("Форма:Spisok_Vvoda***Процедура:ZapisCvetaPolya, Объект:" & ObjT.Name & "***Знач: Номер строки:" & (Nomer) & " Цвет границы - обычный")
+    End If
+End Sub
+Private Sub ChildPomen(ObjT As Object, NumerStroki, TypeSpis As Object, Tela As Object, Numa As Object, NumaList, PaspaList)
+    Dim Value As String
+    Nomer = (Int((PageNumber.Caption) - 1) * 10 + NumerStroki)
+    TypeSpis.RemoveItem Nomer - 1
+    TypeSpis.AddItem Int(ObjT.Value) * (-1), Nomer - 1
+    If ObjT.Value = -1 Then
+        Tela.BackColor = vbGreen
+        Numa.BackColor = vbGreen
+        NumaList.RemoveItem Nomer - 1
+        NumaList.AddItem False, Nomer - 1
+        PaspaList.RemoveItem Nomer - 1
+        PaspaList.AddItem False, Nomer - 1
+    Else
+        Tela.BackColor = vbWhite
+        Numa.BackColor = vbWhite
+    End If
+End Sub
+Private Sub Ruskie_Nazad_Click()
+    Confirm_Button.SetFocus
+    PageNumber.Caption = CStr(Int(PageNumber.Caption) - 1)
+    If Int(PageNumber.Caption) < 99 Then
+        Ruskie_Vpered.Enabled = True
+    End If
+    If PageNumber.Caption = "1" Then
+        Ruskie_Nazad.Enabled = False
+    End If
+    Dim CheChe(60) As Object
+        Set CheChe(0) = FIO_1
+        Set CheChe(1) = FIO_2
+        Set CheChe(2) = FIO_3
+        Set CheChe(3) = FIO_4
+        Set CheChe(4) = FIO_5
+        Set CheChe(5) = FIO_6
+        Set CheChe(6) = FIO_7
+        Set CheChe(7) = FIO_8
+        Set CheChe(8) = FIO_9
+        Set CheChe(9) = FIO_10
+        Set CheChe(10) = NumLabel_1
+        Set CheChe(11) = NumLabel_2
+        Set CheChe(12) = NumLabel_3
+        Set CheChe(13) = NumLabel_4
+        Set CheChe(14) = NumLabel_5
+        Set CheChe(15) = NumLabel_6
+        Set CheChe(16) = NumLabel_7
+        Set CheChe(17) = NumLabel_8
+        Set CheChe(18) = NumLabel_9
+        Set CheChe(19) = NumLabel_10
+        Set CheChe(20) = Num_1
+        Set CheChe(21) = Num_2
+        Set CheChe(22) = Num_3
+        Set CheChe(23) = Num_4
+        Set CheChe(24) = Num_5
+        Set CheChe(25) = Num_6
+        Set CheChe(26) = Num_7
+        Set CheChe(27) = Num_8
+        Set CheChe(28) = Num_9
+        Set CheChe(29) = Num_10
+        Set CheChe(30) = PasportType_1
+        Set CheChe(31) = PasportType_2
+        Set CheChe(32) = PasportType_3
+        Set CheChe(33) = PasportType_4
+        Set CheChe(34) = PasportType_5
+        Set CheChe(35) = PasportType_6
+        Set CheChe(36) = PasportType_7
+        Set CheChe(37) = PasportType_8
+        Set CheChe(38) = PasportType_9
+        Set CheChe(39) = PasportType_10
+        Set CheChe(40) = Tel_1
+        Set CheChe(41) = Tel_2
+        Set CheChe(42) = Tel_3
+        Set CheChe(43) = Tel_4
+        Set CheChe(44) = Tel_5
+        Set CheChe(45) = Tel_6
+        Set CheChe(46) = Tel_7
+        Set CheChe(47) = Tel_8
+        Set CheChe(48) = Tel_9
+        Set CheChe(49) = Tel_10
+        Set CheChe(50) = Child_1
+        Set CheChe(51) = Child_2
+        Set CheChe(52) = Child_3
+        Set CheChe(53) = Child_4
+        Set CheChe(54) = Child_5
+        Set CheChe(55) = Child_6
+        Set CheChe(56) = Child_7
+        Set CheChe(57) = Child_8
+        Set CheChe(58) = Child_9
+        Set CheChe(59) = Child_10
+    For i = 0 To 9
+        If FIO_Label.Caption = "ФИО:" Then
+            CheChe(i + 50).Value = ChildrenState.ItemData(i + (10 * (Int(PageNumber.Caption) - 1)))
+            If CBool(MistakeList.ItemData(i + (10 * (Int(PageNumber.Caption) - 1)))) = True Then
+                CheChe(i).BackColor = RGB(240, 101, 130)
+            Else
+                CheChe(i).BackColor = vbWhite
+            End If
+            If CheChe(i + 50).Value = 1 And CBool(MistakeList_Pasp.ItemData(i + (10 * (Int(PageNumber.Caption) - 1)))) = False Then
+                CheChe(i + 20).BackColor = vbGreen
+            ElseIf CBool(MistakeList_Pasp.ItemData(i + (10 * (Int(PageNumber.Caption) - 1)))) = True Then
+                CheChe(i + 20).BackColor = RGB(240, 101, 130)
+            Else
+                CheChe(i + 20).BackColor = vbWhite
+            End If
+            If CheChe(i + 50).Value = 1 And CBool(MistakeList_Nums.ItemData(i + (10 * (Int(PageNumber.Caption) - 1)))) = False Then
+                CheChe(i + 40).BackColor = vbGreen
+            ElseIf CBool(MistakeList_Nums.ItemData(i + (10 * (Int(PageNumber.Caption) - 1)))) = True Then
+                CheChe(i + 40).BackColor = RGB(240, 101, 130)
+            Else
+                CheChe(i + 40).BackColor = vbWhite
+            End If
+            CheChe(i + 30).Value = CheChe(i + 30).ItemData(PassportList.ItemData(i + (10 * (Int(PageNumber.Caption) - 1))))
+            Call ChangeMask(CheChe(i + 20), CheChe(i + 30).Value)
+            CheChe(i).Value = CStr(ListNames.ItemData(i + (10 * (Int(PageNumber.Caption) - 1))))
+        Else
+            If CBool(MistakeList.ItemData(i + (10 * (Int(PageNumber.Caption) - 1)))) = True Then
+                CheChe(i).BackColor = RGB(240, 101, 130)
+            Else
+                CheChe(i).BackColor = vbWhite
+            End If
+            If CBool(MistakeList_Pasp.ItemData(i + (10 * (Int(PageNumber.Caption) - 1)))) = True Then
+                CheChe(i + 30).BackColor = RGB(240, 101, 130)
+            Else
+                CheChe(i + 30).BackColor = vbWhite
+            End If
+            If CBool(MistakeList_Nums.ItemData(i + (10 * (Int(PageNumber.Caption) - 1)))) = True Then
+                CheChe(i + 40).BackColor = RGB(240, 101, 130)
+            Else
+                CheChe(i + 40).BackColor = vbWhite
+            End If
+            If PassportList.ItemData(i + (10 * (Int(PageNumber.Caption) - 1))) > -1 Then CheChe(i + 30).Value = CheChe(i + 30).ItemData(PassportList.ItemData(i + (10 * (Int(PageNumber.Caption) - 1)))) Else CheChe(i + 30).Value = ""
+            CheChe(i).Value = CStr(ListNames.ItemData(i + (10 * (Int(PageNumber.Caption) - 1))))
+        End If
+    Next i
+    For i = 20 To 29
+        CheChe(i).Value = CStr(ListNumerous.ItemData((i - 20) + (10 * (Int(PageNumber.Caption) - 1))))
+        If FIO_Label.Caption = "ФИО:" Then
+            If Vnesh.ItemData((i - 20) + (10 * (Int(PageNumber.Caption) - 1))) = True Then CheChe(i + 20).InputMask = "" Else CheChe(i + 20).InputMask = "8-(000)-000-00-00"
+        End If
+        CheChe(i + 20).Value = Contact_List.ItemData((i - 20) + (10 * (Int(PageNumber.Caption) - 1)))
+    Next i
+    For i = 10 To 19
+        CheChe(i).Caption = CStr(Int(CheChe(i).Caption) - 10)
+    Next i
+    Call ReadWriteDebug("Форма:Spisok_Vvoda***Процедура:Ruskie_Nazad_Click***Знач:")
+End Sub
+Private Sub Form_Load()
+    If Forms![MainDatabase].Controls![NeskolkoPosetiteley].Enabled = False Then
+        Call LoadMatCen
+    Else
+        Call LoadSpisLyd
+    End If
+    While ListNames.ListCount > 0 Or ListNumerous.ListCount > 0 Or Contact_List.ListCount > 0
+        On Error Resume Next:
+        ListNames.RemoveItem 0
+        ListNumerous.RemoveItem 0
+        MistakeList.RemoveItem 0
+        MistakeList_Nums.RemoveItem 0
+        MistakeList_Pasp.RemoveItem 0
+        PassportList.RemoveItem 0
+        Contact_List.RemoveItem 0
+        Vnesh.RemoveItem 0
+        ChildrenState.RemoveItem 0
+    Wend
+    Dim Pa As Integer
+    Dim Ca As Integer
+    Dim Ser As String
+    'Tel_1.InputMask = "8-(000)-000-00-00"
+    'Tel_2.InputMask = "8-(000)-000-00-00"
+    If Forms![MainDatabase].Controls![Names].ListCount > 0 And Forms![MainDatabase].Controls![SheetNumers].Enabled = True Then
+        Ca = Forms![MainDatabase].Controls![Names].ListCount
+        Pa = 9 + 10 * Int((Forms![MainDatabase].Controls![Names].ListCount / 10))
+        For i = 0 To Ca - 1
+            Ser = Mid(Replace(Replace(Replace(Forms![MainDatabase].Controls![Contacts].ItemData(i), "-", ""), "(", ""), ")", ""), 2)
+            ListNames.AddItem Forms![MainDatabase].Controls![Names].ItemData(i)
+            If FIO_Label.Caption = "ФИО:" Then
+                PassportList.AddItem 1
+                ListNumerous.AddItem Replace(Forms![MainDatabase].Controls![Numers].ItemData(i), Chr(13), "")
+                ChildrenState.AddItem Forms![MainDatabase].Controls![Childreee].ItemData(i)
+            Else
+                PasportType_1.Value = Forms![MainDatabase].Controls![Numers].ItemData(i)
+                PassportList.AddItem PasportType_1.ListIndex
+                ChildrenState.AddItem 0
+                ListNumerous.AddItem ""
+            End If
+            Contact_List.AddItem Replace(Forms![MainDatabase].Controls![Contacts].ItemData(i), Chr(13), "")
+            MistakeList.AddItem False
+            MistakeList_Nums.AddItem False
+            MistakeList_Pasp.AddItem False
+            If Forms![MainDatabase].Controls![Osnovanie_Spis].Caption = True Then Vnesh.AddItem True Else Vnesh.AddItem False
+        Next i
+        For i = Ca To Pa
+            ListNames.AddItem ""
+            ListNumerous.AddItem ""
+            Contact_List.AddItem ""
+            MistakeList.AddItem False
+            MistakeList_Nums.AddItem False
+            MistakeList_Pasp.AddItem False
+            If FIO_Label.Caption = "ФИО:" Then PassportList.AddItem 0 Else PassportList.AddItem -1
+            Vnesh.AddItem False
+            ChildrenState.AddItem 0
+        Next i
+        Ruskie_VPEREDI (0)
+    Else
+    For i = 0 To 9
+        ListNames.AddItem ""
+        ListNumerous.AddItem ""
+        Contact_List.AddItem ""
+        MistakeList.AddItem False
+        MistakeList_Nums.AddItem False
+        MistakeList_Pasp.AddItem False
+        If FIO_Label.Caption = "ФИО:" Then PassportList.AddItem 0 Else PassportList.AddItem -1
+        Vnesh.AddItem False
+        ChildrenState.AddItem 0
+        'Me("Tel_" & (i + 1)).InputMask = "8-(000)-000-00-00"
+        If FIO_Label.Caption = "ФИО:" Then Me("PasportType_" & (i + 1)).Value = Me("PasportType_" & (i + 1)).ItemData(0) Else Me("PasportType_" & (i + 1)).Value = ""
+    Next i
+    End If
+    Call ReadWriteDebug("Форма:Spisok_Vvoda***Процедура:Form_Load***Знач:")
+End Sub
+Private Sub LoadMatCen()
+    FIO_Label.Caption = "Наим. Мат. Ценности:"
+    Pole_2.Caption = vbNewLine & "Количество:"
+    Pole_3.Caption = "Единица Измерения:"
+    RedRec.Visible = False
+    Child_1.Visible = False
+    Child_1.Enabled = False
+    Child_2.Visible = False
+    Child_2.Enabled = False
+    Child_3.Visible = False
+    Child_3.Enabled = False
+    Child_4.Visible = False
+    Child_4.Enabled = False
+    Child_5.Visible = False
+    Child_5.Enabled = False
+    Child_6.Visible = False
+    Child_6.Enabled = False
+    Child_7.Visible = False
+    Child_7.Enabled = False
+    Child_8.Visible = False
+    Child_8.Enabled = False
+    Child_9.Visible = False
+    Child_9.Enabled = False
+    Child_10.Visible = False
+    Child_10.Enabled = False
+    Num_1.Visible = False
+    Num_1.Enabled = False
+    Num_2.Visible = False
+    Num_2.Enabled = False
+    Num_3.Visible = False
+    Num_3.Enabled = False
+    Num_4.Visible = False
+    Num_4.Enabled = False
+    Num_5.Visible = False
+    Num_5.Enabled = False
+    Num_6.Visible = False
+    Num_6.Enabled = False
+    Num_7.Visible = False
+    Num_7.Enabled = False
+    Num_8.Visible = False
+    Num_8.Enabled = False
+    Num_9.Visible = False
+    Num_9.Enabled = False
+    Num_10.Visible = False
+    Num_10.Enabled = False
+    Tel_1.InputMask = "099"
+    Tel_2.InputMask = "099"
+    Tel_3.InputMask = "099"
+    Tel_4.InputMask = "099"
+    Tel_5.InputMask = "099"
+    Tel_6.InputMask = "099"
+    Tel_7.InputMask = "099"
+    Tel_8.InputMask = "099"
+    Tel_9.InputMask = "099"
+    Tel_10.InputMask = "099"
+    PasportType_1.Left = 8163
+    PasportType_2.Left = 8163
+    PasportType_3.Left = 8163
+    PasportType_4.Left = 8163
+    PasportType_5.Left = 8163
+    PasportType_6.Left = 8163
+    PasportType_7.Left = 8163
+    PasportType_8.Left = 8163
+    PasportType_9.Left = 8163
+    PasportType_10.Left = 8163
+    PasportType_1.RowSource = "Штук;Упаковок;Комплектов;Литров;Миллилитров"
+    PasportType_2.RowSource = "Штук;Упаковок;Комплектов;Литров;Миллилитров"
+    PasportType_3.RowSource = "Штук;Упаковок;Комплектов;Литров;Миллилитров"
+    PasportType_4.RowSource = "Штук;Упаковок;Комплектов;Литров;Миллилитров"
+    PasportType_5.RowSource = "Штук;Упаковок;Комплектов;Литров;Миллилитров"
+    PasportType_6.RowSource = "Штук;Упаковок;Комплектов;Литров;Миллилитров"
+    PasportType_7.RowSource = "Штук;Упаковок;Комплектов;Литров;Миллилитров"
+    PasportType_8.RowSource = "Штук;Упаковок;Комплектов;Литров;Миллилитров"
+    PasportType_9.RowSource = "Штук;Упаковок;Комплектов;Литров;Миллилитров"
+    PasportType_10.RowSource = "Штук;Упаковок;Комплектов;Литров;Миллилитров"
+    PasportType_1.Value = ""
+    PasportType_2.Value = ""
+    PasportType_3.Value = ""
+    PasportType_4.Value = ""
+    PasportType_5.Value = ""
+    PasportType_6.Value = ""
+    PasportType_7.Value = ""
+    PasportType_8.Value = ""
+    PasportType_9.Value = ""
+    PasportType_10.Value = ""
+    Pole_2.Height = 580
+    Pole_2.Top = 381
+    Pole_3.Height = 575
+    Pole_3.Top = 391
+    Pole_3.Width = 2099
+    ImportDatata.Enabled = False
+    ImportDatata.Visible = False
+End Sub
+Private Sub LoadSpisLyd()
+    FIO_Label.Caption = "ФИО:"
+    Pole_2.Caption = "Контактная информация:"
+    Pole_3.Caption = "Документ удостоверяющ" & vbNewLine & "личность:"
+    RedRec.Visible = True
+    Child_1.Visible = True
+    Child_1.Enabled = True
+    Child_2.Visible = True
+    Child_2.Enabled = True
+    Child_3.Visible = True
+    Child_3.Enabled = True
+    Child_4.Visible = True
+    Child_4.Enabled = True
+    Child_5.Visible = True
+    Child_5.Enabled = True
+    Child_6.Visible = True
+    Child_6.Enabled = True
+    Child_7.Visible = True
+    Child_7.Enabled = True
+    Child_8.Visible = True
+    Child_8.Enabled = True
+    Child_9.Visible = True
+    Child_9.Enabled = True
+    Child_10.Visible = True
+    Child_10.Enabled = True
+    Num_1.Visible = True
+    Num_1.Enabled = True
+    Num_2.Visible = True
+    Num_2.Enabled = True
+    Num_3.Visible = True
+    Num_3.Enabled = True
+    Num_4.Visible = True
+    Num_4.Enabled = True
+    Num_5.Visible = True
+    Num_5.Enabled = True
+    Num_6.Visible = True
+    Num_6.Enabled = True
+    Num_7.Visible = True
+    Num_7.Enabled = True
+    Num_8.Visible = True
+    Num_8.Enabled = True
+    Num_9.Visible = True
+    Num_9.Enabled = True
+    Num_10.Visible = True
+    Num_10.Enabled = True
+    Tel_1.InputMask = "8-(000)-000-00-00"
+    Tel_2.InputMask = "8-(000)-000-00-00"
+    Tel_3.InputMask = "8-(000)-000-00-00"
+    Tel_4.InputMask = "8-(000)-000-00-00"
+    Tel_5.InputMask = "8-(000)-000-00-00"
+    Tel_6.InputMask = "8-(000)-000-00-00"
+    Tel_7.InputMask = "8-(000)-000-00-00"
+    Tel_8.InputMask = "8-(000)-000-00-00"
+    Tel_9.InputMask = "8-(000)-000-00-00"
+    Tel_10.InputMask = "8-(000)-000-00-00"
+    PasportType_1.Left = 9866
+    PasportType_2.Left = 9866
+    PasportType_3.Left = 9866
+    PasportType_4.Left = 9866
+    PasportType_5.Left = 9866
+    PasportType_6.Left = 9866
+    PasportType_7.Left = 9866
+    PasportType_8.Left = 9866
+    PasportType_9.Left = 9866
+    PasportType_10.Left = 9866
+    PasportType_1.RowSource = "Паспорт РФ;Другой"
+    PasportType_2.RowSource = "Паспорт РФ;Другой"
+    PasportType_3.RowSource = "Паспорт РФ;Другой"
+    PasportType_4.RowSource = "Паспорт РФ;Другой"
+    PasportType_5.RowSource = "Паспорт РФ;Другой"
+    PasportType_6.RowSource = "Паспорт РФ;Другой"
+    PasportType_7.RowSource = "Паспорт РФ;Другой"
+    PasportType_8.RowSource = "Паспорт РФ;Другой"
+    PasportType_9.RowSource = "Паспорт РФ;Другой"
+    PasportType_10.RowSource = "Паспорт РФ;Другой"
+    Pole_2.Height = 905
+    Pole_2.Top = 56
+    Pole_3.Height = 905
+    Pole_3.Top = 56
+    Pole_3.Width = 2384
+    ImportDatata.Enabled = True
+    ImportDatata.Visible = True
+End Sub
+Private Sub Ruskie_Vpered_Click()
+    Call Ruskie_VPEREDI(1)
+End Sub
+Private Sub Ruskie_VPEREDI(ByRef Days As Integer)
+    If Int(PageNumber.Caption) >= 99 Then
+        Confirm_Button.SetFocus
+        Ruskie_Vpered.Enabled = False
+    End If
+    If Days = 1 Then
+        Ruskie_Nazad.Enabled = True
+    End If
+        Dim CheChe(60) As Object
+        Set CheChe(0) = FIO_1
+        Set CheChe(1) = FIO_2
+        Set CheChe(2) = FIO_3
+        Set CheChe(3) = FIO_4
+        Set CheChe(4) = FIO_5
+        Set CheChe(5) = FIO_6
+        Set CheChe(6) = FIO_7
+        Set CheChe(7) = FIO_8
+        Set CheChe(8) = FIO_9
+        Set CheChe(9) = FIO_10
+        Set CheChe(10) = NumLabel_1
+        Set CheChe(11) = NumLabel_2
+        Set CheChe(12) = NumLabel_3
+        Set CheChe(13) = NumLabel_4
+        Set CheChe(14) = NumLabel_5
+        Set CheChe(15) = NumLabel_6
+        Set CheChe(16) = NumLabel_7
+        Set CheChe(17) = NumLabel_8
+        Set CheChe(18) = NumLabel_9
+        Set CheChe(19) = NumLabel_10
+        Set CheChe(20) = Num_1
+        Set CheChe(21) = Num_2
+        Set CheChe(22) = Num_3
+        Set CheChe(23) = Num_4
+        Set CheChe(24) = Num_5
+        Set CheChe(25) = Num_6
+        Set CheChe(26) = Num_7
+        Set CheChe(27) = Num_8
+        Set CheChe(28) = Num_9
+        Set CheChe(29) = Num_10
+        Set CheChe(30) = PasportType_1
+        Set CheChe(31) = PasportType_2
+        Set CheChe(32) = PasportType_3
+        Set CheChe(33) = PasportType_4
+        Set CheChe(34) = PasportType_5
+        Set CheChe(35) = PasportType_6
+        Set CheChe(36) = PasportType_7
+        Set CheChe(37) = PasportType_8
+        Set CheChe(38) = PasportType_9
+        Set CheChe(39) = PasportType_10
+        Set CheChe(40) = Tel_1
+        Set CheChe(41) = Tel_2
+        Set CheChe(42) = Tel_3
+        Set CheChe(43) = Tel_4
+        Set CheChe(44) = Tel_5
+        Set CheChe(45) = Tel_6
+        Set CheChe(46) = Tel_7
+        Set CheChe(47) = Tel_8
+        Set CheChe(48) = Tel_9
+        Set CheChe(49) = Tel_10
+        Set CheChe(50) = Child_1
+        Set CheChe(51) = Child_2
+        Set CheChe(52) = Child_3
+        Set CheChe(53) = Child_4
+        Set CheChe(54) = Child_5
+        Set CheChe(55) = Child_6
+        Set CheChe(56) = Child_7
+        Set CheChe(57) = Child_8
+        Set CheChe(58) = Child_9
+        Set CheChe(59) = Child_10
+        PageNumber.Caption = CStr(Int(PageNumber.Caption) + Days)
+        Dim A As Integer
+        A = Int(NumLabel_1.Caption)
+        If Days > 0 And Int(NumLabel_10.Caption) >= ListNames.ListCount Then
+            For i = 0 To 9
+                ListNames.AddItem ""
+                ListNumerous.AddItem ""
+                Contact_List.AddItem ""
+                MistakeList.AddItem False
+                MistakeList_Nums.AddItem False
+                MistakeList_Pasp.AddItem False
+                If FIO_Label.Caption = "ФИО:" Then
+                    PassportList.AddItem 0
+                Else
+                    PassportList.AddItem -1
+                    CheChe(i + 30).Value = ""
+                    CheChe(i + 30).BackColor = vbWhite
+                End If
+                Vnesh.AddItem False
+                CheChe(i) = ""
+                CheChe(i + 20) = ""
+                CheChe(i + 40) = ""
+                CheChe(i).BackColor = vbWhite
+                CheChe(i + 20).BackColor = vbWhite
+                CheChe(i + 40).BackColor = vbWhite
+                If FIO_Label.Caption = "ФИО:" Then CheChe(i + 30).Value = CheChe(i + 30).ItemData(0) Else CheChe(i + 30).Value = ""
+                Call ChangeMask(CheChe(i + 20), CheChe(i + 30).Value)
+                CheChe(i + 50).Value = False
+                ChildrenState.AddItem 0
+            Next i
+        Else
+            On Error Resume Next:
+            For i = 0 To 9
+                If FIO_Label.Caption = "ФИО:" Then
+                    CheChe(i + 50).Value = ChildrenState.ItemData(i + (10 * (Int(PageNumber.Caption) - 1)))
+                    If CBool(MistakeList.ItemData(i + (10 * (Int(PageNumber.Caption) - 1)))) = True Then
+                        CheChe(i).BackColor = RGB(240, 101, 130)
+                    Else
+                        CheChe(i).BackColor = vbWhite
+                    End If
+                    If CheChe(i + 50).Value = 1 And CBool(MistakeList_Pasp.ItemData(i + (10 * (Int(PageNumber.Caption) - 1)))) = False Then
+                        CheChe(i + 20).BackColor = vbGreen
+                    ElseIf CBool(MistakeList_Pasp.ItemData(i + (10 * (Int(PageNumber.Caption) - 1)))) = True Then
+                        CheChe(i + 20).BackColor = RGB(240, 101, 130)
+                    Else
+                        CheChe(i + 20).BackColor = vbWhite
+                    End If
+                    If CheChe(i + 50).Value = 1 And CBool(MistakeList_Nums.ItemData(i + (10 * (Int(PageNumber.Caption) - 1)))) = False Then
+                        CheChe(i + 40).BackColor = vbGreen
+                    ElseIf CBool(MistakeList_Nums.ItemData(i + (10 * (Int(PageNumber.Caption) - 1)))) = True Then
+                        CheChe(i + 40).BackColor = RGB(240, 101, 130)
+                    Else
+                        CheChe(i + 40).BackColor = vbWhite
+                    End If
+                    CheChe(i + 30).Value = CheChe(i + 30).ItemData(PassportList.ItemData(i + (10 * (Int(PageNumber.Caption) - 1))))
+                    Call ChangeMask(CheChe(i + 20), CheChe(i + 30).Value)
+                    CheChe(i).Value = CStr(ListNames.ItemData(i + (10 * (Int(PageNumber.Caption) - 1))))
+                Else
+                    If CBool(MistakeList.ItemData(i + (10 * (Int(PageNumber.Caption) - 1)))) = True Then
+                        CheChe(i).BackColor = RGB(240, 101, 130)
+                    Else
+                        CheChe(i).BackColor = vbWhite
+                    End If
+                    If CBool(MistakeList_Pasp.ItemData(i + (10 * (Int(PageNumber.Caption) - 1)))) = True Then
+                        CheChe(i + 30).BackColor = RGB(240, 101, 130)
+                    Else
+                        CheChe(i + 30).BackColor = vbWhite
+                    End If
+                    If CBool(MistakeList_Nums.ItemData(i + (10 * (Int(PageNumber.Caption) - 1)))) = True Then
+                        CheChe(i + 40).BackColor = RGB(240, 101, 130)
+                    Else
+                        CheChe(i + 40).BackColor = vbWhite
+                    End If
+                    If PassportList.ItemData(i + (10 * (Int(PageNumber.Caption) - 1))) > -1 Then CheChe(i + 30).Value = CheChe(i + 30).ItemData(PassportList.ItemData(i + (10 * (Int(PageNumber.Caption) - 1)))) Else CheChe(i + 30).Value = ""
+                    CheChe(i).Value = CStr(ListNames.ItemData(i + (10 * (Int(PageNumber.Caption) - 1))))
+                End If
+            Next i
+            For i = 20 To 29
+                CheChe(i).Value = CStr(ListNumerous.ItemData((i - 20) + (10 * (Int(PageNumber.Caption) - 1))))
+                If FIO_Label.Caption = "ФИО:" Then
+                    If Vnesh.ItemData((i - 20) + (10 * (Int(PageNumber.Caption) - 1))) = True Then CheChe(i + 20).InputMask = "" Else CheChe(i + 20).InputMask = "8-(000)-000-00-00"
+                End If
+                CheChe(i + 20).Value = Contact_List.ItemData((i - 20) + (10 * (Int(PageNumber.Caption) - 1)))
+            Next i
+        End If
+    For i = 10 To 19
+        CheChe(i).Caption = CStr(Int(CheChe(i).Caption) + 10 * Days)
+    Next i
+    If (Len(Err.Description)) > 0 Then
+        Call ReadWriteLog(Err.Description, "Ruskie_VPEREDI(Spisok_Vvoda)")
+    End If
+    Call ReadWriteDebug("Форма:Ruskie_VPEREDI***Процедура:Form_Load***Знач:")
+End Sub
+

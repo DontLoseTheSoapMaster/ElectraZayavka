@@ -1,0 +1,26 @@
+Option Compare Database
+Public Function StringCount(ByVal SQLstr As String, MaxPage As Object, NextButton As Object, CurrentPage As Object) As Integer
+    On Error GoTo errHandler:
+    SQLstr = Replace(SQLstr, "SELECT *", "Select COUNT(*) as CJ")
+    Dim db As Database
+    Dim rs As DAO.Recordset
+    Set db = DBEngine.Workspaces(0).Databases(0)
+    Set rs = db.OpenRecordset(SQLstr)
+    rs.MoveFirst
+    MaxPage.Caption = CStr(Int(Int(rs.Fields(0)) / 75))
+    If Int(CurrentPage.Caption) > Int(MaxPage.Caption) Then
+        CurrentPage.Caption = MaxPage.Caption
+    End If
+    If MaxPage.Caption = "0" Or CurrentPage.Caption = MaxPage.Caption Then
+        NextButton.Enabled = False
+    Else
+        NextButton.Enabled = True
+    End If
+    StringCount = rs.Fields(0)
+    'Call ReadWriteDebug("Модуль:Module5***Функция:StringCount***Знач:")
+    Exit Function
+errHandler:
+    'MsgBox Err.Description
+    Call ReadWriteLog(Err.Description, "StringCount(Module5)")
+End Function
+
