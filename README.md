@@ -1,2 +1,0 @@
-# ElectraZayavka
-Application for 
