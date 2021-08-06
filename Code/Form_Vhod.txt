@@ -1,0 +1,250 @@
+Option Compare Database
+Private Sub Button_2_Click()
+    Dim Password As String
+    Password = InputBoxDK("Введите пароль", "Требуется Пароль")
+    Call Module1.InitMenus2(Password)
+    Call ReadWriteDebug("Форма:Vhod***Процедура:Button_2_Click***Знач:")
+End Sub
+Private Sub Form_Activate()
+    On Error Resume Next:
+    Form_TimeZoneForm.Pfizer.Caption = "0"
+    If Voschel.Value = True Then
+        Voschel.Value = False
+        Call Module4.OtdGoesOffline(Label_Otd.Caption)
+    End If
+End Sub
+Private Sub Form_Load()
+    Dim g As Integer
+    g = 1
+    SQL = "SELECT [Username] FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users ORDER BY Username"
+    Dim db1 As Database
+    Dim rs1 As DAO.Recordset
+    Set db1 = DBEngine.Workspaces(0).Databases(0)
+    Set rs1 = db1.OpenRecordset(SQL)
+    rs1.MoveFirst
+    Do While (Not rs1.EOF)
+        VyborOtdeleniya.AddItem CStr(rs1.Fields(0))
+        g = g + 1
+    rs1.MoveNext
+Loop
+    VyborOtdeleniya.Value = CStr(VyborOtdeleniya.ItemData(0))
+    If Environ$("computername") <> "COM006" And Environ$("computername") <> "DESKTOP-HQC9K9E" Then
+        DoCmd.NavigateTo "acNavigationCategoryObjectType"
+        DoCmd.RunCommand acCmdWindowHide
+    End If
+    Voschel.Value = False
+    Call ReadWriteDebug("Форма:Vhod***Процедура:Form_Load***Знач:")
+End Sub
+Private Sub Form_Close()
+    If SystemLabel_1.Caption <> "Vasabi" Then
+        On Error Resume Next:
+        Dim SQL As String
+        Dim SQL2 As String
+        Dim db As Database
+        Dim rs As DAO.Recordset
+        Dim A As Integer
+        Dim b As Integer
+        Dim ChisolPodsoedineni As Integer
+        ChisolPodsoedineni = ConnectiontsCounts()
+        SQL2 = "SELECT [BuferNum] FROM TableTheSystem2"
+        Set db = DBEngine.Workspaces(0).Databases(0)
+        Set rs = db.OpenRecordset(SQL2)
+        rs.MoveFirst
+        'CheckUser.Enabled = False
+        'CheckUser.Visible = False
+        A = Int(rs.Fields(0))
+        If ChisolPodsoedineni > 1 Then
+            If A = Int(SystemLabel_1.Caption) Then A = A - 1
+            SQL2 = "UPDATE TableTheSystem2 SET BuferNum = " & "'" & A & "';"
+            CurrentDb.Execute SQL2
+            DoCmd.Close acTable, "MainDatabaseBufer" & SystemLabel_1.Caption
+            DoCmd.DeleteObject acTable, "MainDatabaseBufer" & SystemLabel_1.Caption
+        Else
+            For i = A To 1 Step -1
+                DoCmd.Close acTable, "MainDatabaseBufer" & i
+                DoCmd.DeleteObject acTable, "MainDatabaseBufer" & i
+            Next i
+            b = 0
+            A = 0
+            SQL2 = "UPDATE TableTheSystem2 SET BuferNum = " & "'" & A & "';"
+            CurrentDb.Execute SQL2
+            SQL2 = "DELETE * FROM OtdeleniyasOnline"
+            CurrentDb.Execute SQL2
+        End If
+    End If
+    If Voschel.Value = True Then
+        Voschel.Value = False
+        Call Module4.OtdGoesOffline(Label_Otd.Caption)
+    End If
+    Call ReadWriteDebug("Форма:Vhod***Процедура:Form_Close***Знач:")
+    'If Len(Err.Description) > 0 Then
+        'Call ReadWriteLog(Err.Description, "Закрытие. Последняя ошибка")
+    'End If
+End Sub
+Private Function ConnectiontsCounts() As Integer
+    Dim cn As New ADODB.Connection
+    Dim rs As New ADODB.Recordset
+    Dim i, j As Long
+    ConnectiontsCounts = 0
+Set cn = CurrentProject.Connection
+' The user roster is exposed as a provider-specific schema rowset
+    ' in the Jet 4.0 OLE DB provider.  You have to use a GUID to
+    ' reference the schema, as provider-specific schemas are not
+    ' listed in ADO's type library for schema rowsets
+
+Set rs = cn.OpenSchema(adSchemaProviderSpecific, _
+    , "{947bb102-5d43-11d1-bdbf-00c04fb92675}")
+'Output the list of all users in the current database.
+
+'Debug.Print rs.Fields(0).Name, "", rs.Fields(1).Name, _
+'    "", rs.Fields(2).Name, rs.Fields(3).Name
+
+While Not rs.EOF
+        ConnectiontsCounts = ConnectiontsCounts + 1
+        rs.MoveNext
+    Wend
+    'i = MsgBox("Количество подключений - " & ConnectiontsCounts, vbInformation)
+    Call ReadWriteDebug("Форма:Vhod***Функция:ConnectiontsCounts***Знач: " & ConnectiontsCounts)
+End Function
+Public Sub CodeKnopki()
+    Dim db1 As Database
+    Dim rs1 As DAO.Recordset
+    Dim db2 As Database
+    Dim rs2 As DAO.Recordset
+    Dim Password As String
+    Dim Otdelenie As String
+    Dim SQLZapros As String
+    On Error GoTo ErrorHandlerDivision
+    Password = PasswordField.Value
+    Dim EstKavyChka As Boolean
+    EstKavyChka = CheckKavyChka_3(Password)
+    If EstKavyChka = False Then
+        Otdelenie = VyborOtdeleniya.Value
+        SQL = "SELECT [Username],[TheKey],[Password] FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users WHERE  Username = " & Chr(39) & Otdelenie & Chr(39) & " " & "AND Password = " & Chr(39) & Password & Chr(39) & ";"
+        Set db1 = DBEngine.Workspaces(0).Databases(0)
+        Set rs1 = db1.OpenRecordset(SQL)
+        rs1.MoveFirst
+        SQL = "SELECT Users.[TheKey],[otd],[AllowOpen] FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Users, [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Otdeleniya WHERE  Users.Username = " & Chr(39) & Otdelenie & Chr(39) & " " & "AND Users.TheKey = Otdeleniya.TheKey"
+        Set rs1 = db1.OpenRecordset(SQL)
+        rs1.MoveFirst
+        If rs1.Fields(2) = True Then
+            Label_Otd.Caption = CStr(rs1.Fields(1))
+            If RememberMeFlag.Value = True Then Call ZapomniMenya
+            SQL = "UPDATE [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Computer_In_Our_System SET [LastDayVhod] = " & "'" & Date & "' WHERE Computer = " & "'" & Environ$("computername") & "';"
+            CurrentDb.Execute SQL
+            If Int(rs1.Fields(0)) <> 1 And Int(rs1.Fields(0)) <> 47 Then
+                DoCmd.OpenForm "Interface_Zayavok_Otdeleniya"
+                Call SetProprieties(False)
+                Voschel.Value = True
+            ElseIf Int(rs1.Fields(0)) = 47 Then
+                DoCmd.OpenForm "Interface_Soglosovaniya (Kadry)"
+                Call SetProprieties(False)
+                Voschel.Value = True
+            Else
+                DoCmd.OpenForm "Interface_Soglosovaniya"
+                Call SetProprieties(False)
+                Voschel.Value = True
+            End If
+            Call ReadWriteDebug("Форма:Vhod***Процедура:CodeKnopki***Знач:")
+        Else
+            i = MsgBox("Доступ в ваше отделение запрещен! Ведуться технические работы", vbCritical)
+        End If
+        Exit Sub
+ErrorHandlerDivision:
+        MsgBox Err.Description
+        i = MsgBox("Пароль введен неправильно", vbCritical)
+    Else
+        i = MsgBox("Кавычек не должно быть!", vbCritical)
+    End If
+End Sub
+Private Function CheckKavyChka_3(Texten As String) As Boolean
+    On Error GoTo errHandler:
+    If InStr(1, Texten, "'", vbTextCompare) > 0 Then
+        CheckKavyChka_3 = True
+    Else
+        CheckKavyChka_3 = False
+    End If
+    If InStr(1, Texten, "`", vbTextCompare) > 0 Then
+        CheckKavyChka_3 = True
+    Else
+        CheckKavyChka_3 = False
+    End If
+    Call ReadWriteDebug("Форма:Vhod***Функция:CheckKavyChka_3***Знач:")
+    Exit Function
+errHandler:
+    Call ReadWriteLog(Err.Description, "CheckKavyChka_3(Vhod)")
+    i = MsgBox("Ошибка проверки пароля", vbCritical)
+    CheckKavyChka_3 = False
+End Function
+Private Sub Form_Timer()
+    TimerCount.Caption = CStr(Int(TimerCount.Caption) + 1)
+    If CurrentProject.AllForms("MainDatabase").IsLoaded Then
+        If Int(TimerCount.Caption) > 5 And Form_Interface_Zayavok_Otdeleniya.TimerInterval = 0 Then
+            Form_Interface_Zayavok_Otdeleniya.TimerInterval = 10000
+        End If
+    End If
+End Sub
+
+Private Sub PasswordField_KeyDown(KeyCode As Integer, Shift As Integer)
+    KeyCode = CheckKavyChka(KeyCode)
+End Sub
+Private Sub VyborOtdeleniya_AfterUpdate()
+    
+End Sub
+Private Sub Кнопка14_Click()
+
+End Sub
+Private Sub Кнопка5_Click()
+    Call CodeKnopki
+End Sub
+Private Sub SetProprieties(ByRef State As Boolean)
+    Dim prpNew As Property
+    Dim prpNew2 As Property
+    Dim prpNew3 As Property
+    Dim prpNew4 As Property
+    Dim prpNew5 As Property
+    'On Error Resume Next
+    CurrentDb.Properties("AllowFullMenus").Value = State
+    CurrentDb.Properties("AllowShortcutMenus").Value = State
+    CurrentDb.Properties("AllowSpecialKeys").Value = State
+    'CurrentDb.Properties("BreakIntoCode").Value = False
+    CurrentDb.Properties("AllowShift").Value = State
+    If State = False Then ap_DisableShift Else ap_EnableShift
+    If Err.Number = 3270 Then
+    Set prpNew = CurrentDb.CreateProperty("AllowFullMenus", dbBoolean, State)
+    Set prpNew2 = CurrentDb.CreateProperty("AllowShortcutMenus", dbBoolean, State)
+    Set prpNew3 = CurrentDb.CreateProperty("AllowSpecialKeys", dbBoolean, State)
+    'Set prpNew4 = CurrentDb.CreateProperty("BreakIntoCode", dbBoolean, False)
+    Set prpNew5 = CurrentDb.CreateProperty("AllowShift", dbBoolean, False)
+    CurrentDb.Properties.Append prpNew
+    CurrentDb.Properties.Append prpNew2
+    CurrentDb.Properties.Append prpNew3
+    'CurrentDb.Properties.Append prpNew4
+    'CurrentDb.Properties.Append prpNew5
+    Err.Clear
+End If
+    Call ReadWriteDebug("Форма:Vhod***Процедура:SetProprieties***Знач:")
+End Sub
+Private Sub ZapomniMenya()
+    Dim db1 As Database
+    Dim SQL As String
+    Dim A As String
+    Dim rs1 As DAO.Recordset
+    Dim db2 As Database
+    Dim rs2 As DAO.Recordset
+    A = Environ$("computername")
+    SQL = "SELECT * FROM [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Computer_In_Our_System WHERE Computer = " & "'" & A & "';"
+    Set db1 = DBEngine.Workspaces(0).Databases(0)
+    Set rs1 = db1.OpenRecordset(SQL)
+    On Error GoTo ErrorHandlerPass:
+    rs1.MoveFirst
+    Dim b As String
+    b = "Данный компьютер уже внесен в базу как компьютер пользователя: " & rs1.Fields(2).Value
+    i = MsgBox(b, vbCritical)
+    Call ReadWriteDebug("Форма:Vhod***Процедура:ZapomniMenya***Знач:")
+    Exit Sub
+ErrorHandlerPass:
+    'MsgBox Err.Description
+    strSQL = "INSERT INTO [;DATABASE=" & (CurrentProject.Path & "\SystemEZP.accdb") & ";PWD=cccc;].Computer_In_Our_System ([Computer],[User],[LastDayVhod]) VALUES " & "('" & A & "', '" & CStr(VyborOtdeleniya.Value) & "','" & Date & "');"
+    CurrentDb.Execute strSQL
+End Sub
